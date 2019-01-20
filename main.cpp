@@ -1,5 +1,6 @@
 #include <getopt.h>
 
+#include <deque>
 #include <iostream>
 
 #include "Module.h"
@@ -26,13 +27,16 @@ int main(int argc, char **argv) {
 		::std::cerr << "ERROR: No function name provided!\n";
 		return 2;
 	}
+
+	::std::deque<Module> modules;
 	for (int i = optind; i < argc; ++i) {
 		::std::cout << "Parsing file: " << argv[i] << "\n";
-		Module m(argv[i]);
-		for (auto it = m.func_begin(); it != m.func_end(); ++it) {
-			::std::cout << *it << "\n";
-		}
+		modules.push_back(Module(argv[i]));
 	}
+
+	for (auto &m:modules)
+		for (auto it = m.func_begin(); it != m.func_end(); ++it)
+			::std::cout << *it << "\n";
 
 	::std::cout << "Hello " << func_name << "\n";
 	return 0;

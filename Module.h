@@ -8,6 +8,8 @@ class Module {
 	LLVMModuleRef module_ = nullptr;
 public:
 	Module(const char* file);
+	Module(Module &&m)
+	{ ::std::swap(module_, m.module_); }
 	~Module();
 
 	LLVMModuleRef & get()
