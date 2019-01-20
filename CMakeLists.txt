@@ -2,6 +2,12 @@ cmake_minimum_required( VERSION 3.9.2 )
 
 project( inst-counter LANGUAGES CXX )
 include( GNUInstallDirs )
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+    "MinSizeRel" "RelWithDebInfo")
+endif(NOT CMAKE_BUILD_TYPE)
 
 find_package(LLVM REQUIRED CONFIG)
 include_directories(${LLVM_INCLUDE_DIRS})
