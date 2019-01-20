@@ -29,7 +29,9 @@ int main(int argc, char **argv) {
 	for (int i = optind; i < argc; ++i) {
 		::std::cout << "Parsing file: " << argv[i] << "\n";
 		Module m(argv[i]);
-		::std::cout << m;
+		for (auto it = m.func_begin(); it != m.func_end(); ++it) {
+			::std::cout << *it << "\n";
+		}
 	}
 
 	::std::cout << "Hello " << func_name << "\n";

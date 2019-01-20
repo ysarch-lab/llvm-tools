@@ -14,6 +14,7 @@ include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
 add_executable(op-counter
+               Function.cpp
                main.cpp
                Module.cpp)
 
