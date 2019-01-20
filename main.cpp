@@ -1,7 +1,8 @@
 #include <getopt.h>
 
 #include <iostream>
-#include <llvm-c/Core.h>
+
+#include "Module.h"
 
 static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
@@ -25,8 +26,12 @@ int main(int argc, char **argv) {
 		::std::cerr << "ERROR: No function name provided!\n";
 		return 2;
 	}
-	for (int i = optind; i < argc; ++i)
+	for (int i = optind; i < argc; ++i) {
 		::std::cout << "Parsing file: " << argv[i] << "\n";
+		Module m(argv[i]);
+		::std::cout << m;
+	}
+
 	::std::cout << "Hello " << func_name << "\n";
 	return 0;
 }

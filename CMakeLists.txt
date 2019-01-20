@@ -14,7 +14,8 @@ include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
 add_executable(op-counter
-               main.cpp)
+               main.cpp
+               Module.cpp)
 
 llvm_map_components_to_libnames(llvm_libs support core irreader)
 
