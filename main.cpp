@@ -46,9 +46,11 @@ int main(int argc, char **argv) {
 		}
 
 	for (auto &f:func_stack) {
-		::std::cout << "FOUND: " << f << "\n";
+		size_t count = 0;
 		for (auto bbi = f.begin(); bbi != f.end(); ++bbi)
-			::std::cout << "BB\n";
+			for (auto ii = bbi->begin(); ii != bbi->end(); ++ii)
+				++count;
+		::std::cout << "FOUND: " << f << " (" << count << ")" << "\n";
 	}
 
 	return 0;

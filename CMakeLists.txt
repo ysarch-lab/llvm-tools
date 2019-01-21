@@ -16,6 +16,7 @@ add_definitions(${LLVM_DEFINITIONS})
 
 add_executable(op-counter
                Function.cpp
+	       Instruction.cpp
                main.cpp
                Module.cpp)
 
