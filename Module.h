@@ -1,3 +1,4 @@
+#include <memory>
 #include <ostream>
 
 #include <llvm-c/Core.h>
@@ -26,6 +27,9 @@ public:
 
 		Function operator *()
 		{ return Function(func_); }
+
+		::std::unique_ptr<Function> operator -> ()
+		{ return ::std::unique_ptr<Function>(new Function(func_)); }
 
 		func_iterator operator++()
 		{ func_ = LLVMGetNextFunction(func_); }
