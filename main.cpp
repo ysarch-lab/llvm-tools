@@ -44,8 +44,12 @@ int main(int argc, char **argv) {
 			if (mm.first == func_name.end())
 				func_stack.push_back(*it);
 		}
-	for (auto &f:func_stack)
+
+	for (auto &f:func_stack) {
 		::std::cout << "FOUND: " << f << "\n";
+		for (auto bbi = f.begin(); bbi != f.end(); ++bbi)
+			::std::cout << "BB\n";
+	}
 
 	return 0;
 }
