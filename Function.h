@@ -29,8 +29,8 @@ public:
 		::std::unique_ptr<BasicBlock> operator -> ()
 		{ return ::std::unique_ptr<BasicBlock>(new BasicBlock(bb_)); }
 
-		bb_iterator operator++()
-		{ bb_ = LLVMGetNextBasicBlock(bb_); }
+		const bb_iterator & operator++()
+		{ bb_ = LLVMGetNextBasicBlock(bb_); return *this; }
 	};
 
 	bb_iterator begin()

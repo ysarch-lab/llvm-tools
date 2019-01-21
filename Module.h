@@ -32,8 +32,8 @@ public:
 		::std::unique_ptr<Function> operator -> ()
 		{ return ::std::unique_ptr<Function>(new Function(func_)); }
 
-		func_iterator operator++()
-		{ func_ = LLVMGetNextFunction(func_); }
+		const func_iterator & operator++()
+		{ func_ = LLVMGetNextFunction(func_); return *this; }
 	};
 
 	func_iterator func_begin()

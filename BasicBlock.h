@@ -26,8 +26,8 @@ public:
 		::std::unique_ptr<Instruction> operator -> ()
 		{ return ::std::unique_ptr<Instruction>(new Instruction(inst_)); }
 
-		inst_iterator operator++()
-		{ inst_ = LLVMGetNextInstruction(inst_); }
+		const inst_iterator & operator++()
+		{ inst_ = LLVMGetNextInstruction(inst_); return *this; }
 	};
 
 	inst_iterator begin()
