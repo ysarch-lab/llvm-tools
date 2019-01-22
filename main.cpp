@@ -17,11 +17,10 @@ using counts_t = ::std::unordered_map<::std::string, size_t>;
 
 static void find_loc_md_node(LLVMValueRef node, ::std::deque<::std::string> &strs, int depth = 0)
 {
-	LLVMMetadataRef MD = LLVMValueAsMetadata(node);
 	unsigned len = 12;
 	const char * str = LLVMGetMDString(node, &len);
-	const unsigned ops = LLVMGetMDNodeNumOperands(node);
 #if 0
+	LLVMMetadataRef MD = LLVMValueAsMetadata(node);
 	for (int i = 0; i < depth; ++i)
 		::std::cerr << "\t";
 	::std::cerr << node << ": str: " << ::std::string(str, len)  << " (" << len << "):" << ops << " " << MD << " | " << (void*)str <<"\n";
@@ -35,6 +34,7 @@ static void find_loc_md_node(LLVMValueRef node, ::std::deque<::std::string> &str
 		return;
 	}
 
+	const unsigned ops = LLVMGetMDNodeNumOperands(node);
 	::std::vector<LLVMValueRef> operands(ops, nullptr);
 	LLVMGetMDNodeOperands(node, operands.data());
 	for (auto op:operands) {
