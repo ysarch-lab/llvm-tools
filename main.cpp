@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "Module.h"
 
@@ -14,6 +15,34 @@ static const struct option options[] = {
 
 using counts_t = ::std::unordered_map<::std::string, size_t>;
 
+static void find_loc_md_node(LLVMValueRef node, ::std::deque<::std::string> &strs, int depth = 0)
+{
+	LLVMMetadataRef MD = LLVMValueAsMetadata(node);
+	unsigned len = 12;
+	const char * str = LLVMGetMDString(node, &len);
+	const unsigned ops = LLVMGetMDNodeNumOperands(node);
+#if 0
+	for (int i = 0; i < depth; ++i)
+		::std::cerr << "\t";
+	::std::cerr << node << ": str: " << ::std::string(str, len)  << " (" << len << "):" << ops << " " << MD << " | " << (void*)str <<"\n";
+#endif
+
+	if (str != nullptr) {
+		// Primary location is at depth 2. Other locations are the
+		// results of 'inlined at' reference
+		if (depth == 2)
+			strs.push_back({str, len});
+		return;
+	}
+
+	::std::vector<LLVMValueRef> operands(ops, nullptr);
+	LLVMGetMDNodeOperands(node, operands.data());
+	for (auto op:operands) {
+		if (op) // Why whould it be null?
+			find_loc_md_node(op, strs, depth + 1);
+	}
+}
+
 static ::std::deque<::std::string> get_inst_dloc(const Instruction &i)
 {
 	static const unsigned dbg_kind_id = LLVMGetMDKindID("dbg", 3);
@@ -23,7 +52,7 @@ static ::std::deque<::std::string> get_inst_dloc(const Instruction &i)
 	if (MDV == NULL) {
 		strs.push_back("unknown");
 	} else {
-		strs.push_back("known");
+		find_loc_md_node(MDV, strs);
 	}
 	return strs;
 }
@@ -36,6 +65,7 @@ static counts_t analyze_function(Function &f)
 			auto locs = get_inst_dloc(*ii);
 			for (auto &loc: locs)
 				counts[loc] += 1;
+			// TODO: Consider calls to other functions
 		}
 	return counts;
 }
