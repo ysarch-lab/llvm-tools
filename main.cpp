@@ -3,6 +3,7 @@
 #include <deque>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 
 #include "Module.h"
 
@@ -10,6 +11,35 @@ static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
 	{"help", required_argument, NULL, 'h'},
 };
+
+using counts_t = ::std::unordered_map<::std::string, size_t>;
+
+static ::std::deque<::std::string> get_inst_dloc(const Instruction &i)
+{
+	static const unsigned dbg_kind_id = LLVMGetMDKindID("dbg", 3);
+	LLVMValueRef MDV = i.getMetadata(dbg_kind_id);
+
+	::std::deque<::std::string> strs;
+	if (MDV == NULL) {
+		strs.push_back("unknown");
+	} else {
+		strs.push_back("known");
+	}
+	return strs;
+}
+
+static counts_t analyze_function(Function &f)
+{
+	counts_t counts;
+	for (auto bbi = f.begin(); bbi != f.end(); ++bbi)
+		for (auto ii = bbi->begin(); ii != bbi->end(); ++ii) {
+			auto locs = get_inst_dloc(*ii);
+			for (auto &loc: locs)
+				counts[loc] += 1;
+		}
+	return counts;
+}
+
 
 int main(int argc, char **argv) {
 	::std::string func_name;
@@ -46,11 +76,13 @@ int main(int argc, char **argv) {
 		}
 
 	for (auto &f:func_stack) {
-		size_t count = 0;
-		for (auto bbi = f.begin(); bbi != f.end(); ++bbi)
-			for (auto ii = bbi->begin(); ii != bbi->end(); ++ii)
-				++count;
-		::std::cout << "FOUND: " << f << " (" << count << ")" << "\n";
+		counts_t counts = analyze_function(f);
+		size_t total = 0;
+		for (auto &count: counts) {
+			::std::cout << f << ": " << count.first << ": " << count.second << "\n";
+			total += count.second;
+		}
+		::std::cout << f << ": total: " << total << "\n";
 	}
 
 	return 0;
