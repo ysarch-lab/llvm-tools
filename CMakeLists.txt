@@ -14,6 +14,8 @@ find_package(LLVM REQUIRED CONFIG)
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
+message(STATUS "Found LLVM version: ${LLVM_VERSION}")
+
 add_executable(op-counter
                Function.cpp
 	       Instruction.cpp
