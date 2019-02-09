@@ -2,7 +2,6 @@
 
 ::std::ostream & operator << (::std::ostream &O, const Instruction &i)
 {
-	auto op = LLVMGetInstructionOpcode(i.inst_);
-	O << op;
+	O << i.getOpcode();
 	return O;
 }

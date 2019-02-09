@@ -12,5 +12,8 @@ public:
 	LLVMValueRef getMetadata(unsigned kind) const
 	{ return LLVMGetMetadata(inst_, kind); }
 
-	friend ::std::ostream & operator << (::std::ostream &, const Instruction &);
+	LLVMOpcode getOpcode() const
+	{ return LLVMGetInstructionOpcode(inst_); }
 };
+
+::std::ostream & operator << (::std::ostream &, const Instruction &);
