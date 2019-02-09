@@ -18,7 +18,7 @@ using counts_t = ::std::unordered_map<::std::string, size_t>;
 
 static void find_loc_md_node(LLVMValueRef node, ::std::deque<::std::string> &strs)
 {
-	unsigned len = 12;
+	unsigned len = 0;
 	const char *str = LLVMGetMDString(node, &len);
 
 	if (str != nullptr) {
