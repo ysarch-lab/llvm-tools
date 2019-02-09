@@ -29,7 +29,7 @@ static void find_loc_md_node(LLVMValueRef node, ::std::deque<::std::string> &str
 		    md_string[0] != '/' && // Directory location
 		    md_string[0] != '<' && // builtin location
 		    md_string != "PsyNeuLink") // Generator name
-			strs.push_back(::std::move(md_string));
+			strs.push_front(::std::move(md_string));
 		return;
 	}
 
@@ -63,9 +63,12 @@ static counts_t analyze_function(Function &f)
 	for (auto bbi = f.begin(); bbi != f.end(); ++bbi)
 		for (auto ii = bbi->begin(); ii != bbi->end(); ++ii) {
 			auto locs = get_inst_dloc(*ii);
-			::std::string combined = "";
-			for (auto &loc: locs)
-				combined = loc + "$" + combined;
+			::std::string combined;
+			for (auto &loc: locs) {
+				if (combined.size() > 0)
+					combined += ':';
+				combined += loc;
+			}
 			counts[combined] += 1;
 			// TODO: Consider calls to other functions
 		}
