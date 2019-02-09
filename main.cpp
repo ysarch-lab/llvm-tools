@@ -16,7 +16,7 @@ static const struct option options[] = {
 
 using counts_t = ::std::unordered_map<::std::string, size_t>;
 
-static void find_loc_md_node(LLVMValueRef node, ::std::deque<::std::string> &strs, int depth = 0)
+static void find_loc_md_node(LLVMValueRef node, ::std::deque<::std::string> &strs)
 {
 	unsigned len = 12;
 	const char *str = LLVMGetMDString(node, &len);
@@ -39,7 +39,7 @@ static void find_loc_md_node(LLVMValueRef node, ::std::deque<::std::string> &str
 	LLVMGetMDNodeOperands(node, operands.data());
 	for (auto op:operands) {
 		if (op) // Why would it be null?
-			find_loc_md_node(op, strs, depth + 1);
+			find_loc_md_node(op, strs);
 	}
 }
 
