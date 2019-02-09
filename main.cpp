@@ -1,5 +1,6 @@
 #include <getopt.h>
 
+#include <cassert>
 #include <deque>
 #include <iostream>
 #include <string>
@@ -18,27 +19,26 @@ using counts_t = ::std::unordered_map<::std::string, size_t>;
 static void find_loc_md_node(LLVMValueRef node, ::std::deque<::std::string> &strs, int depth = 0)
 {
 	unsigned len = 12;
-	const char * str = LLVMGetMDString(node, &len);
-#if 0
-	LLVMMetadataRef MD = LLVMValueAsMetadata(node);
-	for (int i = 0; i < depth; ++i)
-		::std::cerr << "\t";
-	::std::cerr << node << ": str: " << ::std::string(str, len)  << " (" << len << "):" << ops << " " << MD << " | " << (void*)str <<"\n";
-#endif
+	const char *str = LLVMGetMDString(node, &len);
 
 	if (str != nullptr) {
-		// Primary location is at depth 2. Other locations are the
-		// results of 'inlined at' reference
-		if (depth == 2)
-			strs.push_back({str, len});
+		assert(len > 0);
+		::std::string md_string(str, len);
+		// filter out file names
+		if (md_string.substr(md_string.size() - 3, 3) != ".py" &&
+		    md_string[0] != '/' && // Directory location
+		    md_string[0] != '<' && // builtin location
+		    md_string != "PsyNeuLink") // Generator name
+			strs.push_back(::std::move(md_string));
 		return;
 	}
 
 	const unsigned ops = LLVMGetMDNodeNumOperands(node);
 	::std::vector<LLVMValueRef> operands(ops, nullptr);
+
 	LLVMGetMDNodeOperands(node, operands.data());
 	for (auto op:operands) {
-		if (op) // Why whould it be null?
+		if (op) // Why would it be null?
 			find_loc_md_node(op, strs, depth + 1);
 	}
 }
@@ -63,8 +63,10 @@ static counts_t analyze_function(Function &f)
 	for (auto bbi = f.begin(); bbi != f.end(); ++bbi)
 		for (auto ii = bbi->begin(); ii != bbi->end(); ++ii) {
 			auto locs = get_inst_dloc(*ii);
+			::std::string combined = "";
 			for (auto &loc: locs)
-				counts[loc] += 1;
+				combined = loc + "$" + combined;
+			counts[combined] += 1;
 			// TODO: Consider calls to other functions
 		}
 	return counts;
