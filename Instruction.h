@@ -1,4 +1,5 @@
 #pragma once
+#include <cassert>
 #include <ostream>
 #include <string>
 
@@ -11,6 +12,12 @@ public:
 
 	LLVMValueRef getMetadata(unsigned kind) const
 	{ return LLVMGetMetadata(inst_, kind); }
+
+	LLVMValueRef getCalledValue() const {
+		assert(getOpcode() == LLVMCall ||
+		       getOpcode() == LLVMInvoke);
+		return LLVMGetCalledValue(inst_);
+	}
 
 	LLVMOpcode getOpcode() const
 	{ return LLVMGetInstructionOpcode(inst_); }

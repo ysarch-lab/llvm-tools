@@ -69,7 +69,11 @@ static void analyze_function(Function &f, counts_t &counts)
 				combined += loc;
 			}
 			counts[combined] += 1;
-			// TODO: Consider calls to other functions
+			if (ii->getOpcode() == LLVMCall ||
+			    ii->getOpcode() == LLVMInvoke) {
+				Function f(ii->getCalledValue());
+				analyze_function(f, counts);
+			}
 		}
 }
 
