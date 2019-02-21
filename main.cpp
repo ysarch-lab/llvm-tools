@@ -11,6 +11,7 @@
 
 static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
+	{"skip-loads-stores", required_argument, NULL, 's'},
 	{"help", required_argument, NULL, 'h'},
 };
 
@@ -57,10 +58,15 @@ static ::std::deque<::std::string> get_inst_dloc(const Instruction &i)
 	return strs;
 }
 
-static void analyze_function(Function &f, counts_t &counts)
+static void analyze_function(Function &f, counts_t &counts, bool skip_load_store)
 {
 	for (auto bbi = f.begin(); bbi != f.end(); ++bbi)
 		for (auto ii = bbi->begin(); ii != bbi->end(); ++ii) {
+			if (skip_load_store &&
+			    (ii->getOpcode() == LLVMLoad ||
+			     ii->getOpcode() == LLVMStore))
+				continue;
+
 			auto locs = get_inst_dloc(*ii);
 			::std::string combined;
 			for (auto &loc: locs) {
@@ -72,7 +78,7 @@ static void analyze_function(Function &f, counts_t &counts)
 			if (ii->getOpcode() == LLVMCall ||
 			    ii->getOpcode() == LLVMInvoke) {
 				Function f(ii->getCalledValue());
-				analyze_function(f, counts);
+				analyze_function(f, counts, skip_load_store);
 			}
 		}
 }
@@ -81,8 +87,10 @@ static void analyze_function(Function &f, counts_t &counts)
 int main(int argc, char **argv) {
 	::std::string func_name;
 	char c = -1;
-	while ((c = getopt_long(argc, argv, "f:h", options, NULL)) != -1) {
+	bool skip_load_store = false;
+	while ((c = getopt_long(argc, argv, "sf:h", options, NULL)) != -1) {
 		switch (c) {
+		case 's': skip_load_store = true; break;
 		case 'f': func_name = ::std::string(optarg); break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
@@ -114,7 +122,7 @@ int main(int argc, char **argv) {
 
 	for (auto &f:func_stack) {
 		counts_t counts;
-		analyze_function(f, counts);
+		analyze_function(f, counts, skip_load_store);
 		size_t total = 0;
 		for (auto &count: counts) {
 			::std::cout << f << ": " << count.first << ": " << count.second << "\n";
