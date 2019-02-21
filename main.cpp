@@ -57,9 +57,8 @@ static ::std::deque<::std::string> get_inst_dloc(const Instruction &i)
 	return strs;
 }
 
-static counts_t analyze_function(Function &f)
+static void analyze_function(Function &f, counts_t &counts)
 {
-	counts_t counts;
 	for (auto bbi = f.begin(); bbi != f.end(); ++bbi)
 		for (auto ii = bbi->begin(); ii != bbi->end(); ++ii) {
 			auto locs = get_inst_dloc(*ii);
@@ -72,7 +71,6 @@ static counts_t analyze_function(Function &f)
 			counts[combined] += 1;
 			// TODO: Consider calls to other functions
 		}
-	return counts;
 }
 
 
@@ -111,7 +109,8 @@ int main(int argc, char **argv) {
 		}
 
 	for (auto &f:func_stack) {
-		counts_t counts = analyze_function(f);
+		counts_t counts;
+		analyze_function(f, counts);
 		size_t total = 0;
 		for (auto &count: counts) {
 			::std::cout << f << ": " << count.first << ": " << count.second << "\n";
