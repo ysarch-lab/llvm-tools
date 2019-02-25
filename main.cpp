@@ -98,6 +98,9 @@ int main(int argc, char **argv) {
 			::std::cerr << "Unknown option: " << argv[optind - 1]
 			            << ::std::endl;
 		case 'h':
+			::std::cerr << "Available options:\n";
+			::std::cerr << "\t-f,--function\t\tfunction name (prefix) to analyze\n";
+			::std::cerr << "\t-s,--skip-non-compute\tignore non-compute operations (LOAD, STORE, GEP, BITCAST)\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
