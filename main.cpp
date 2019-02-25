@@ -66,7 +66,8 @@ static void analyze_function(Function &f, counts_t &counts, bool skip_non_comput
 			    (ii->getOpcode() == LLVMLoad ||
 			     ii->getOpcode() == LLVMStore ||
 			     ii->getOpcode() == LLVMBitCast ||
-			     ii->getOpcode() == LLVMGetElementPtr))
+			     ii->getOpcode() == LLVMGetElementPtr ||
+			     ii->getOpcode() == LLVMPHI))
 				continue;
 
 			auto locs = get_inst_dloc(*ii);
@@ -100,7 +101,7 @@ int main(int argc, char **argv) {
 		case 'h':
 			::std::cerr << "Available options:\n";
 			::std::cerr << "\t-f,--function\t\tfunction name (prefix) to analyze\n";
-			::std::cerr << "\t-s,--skip-non-compute\tignore non-compute operations (LOAD, STORE, GEP, BITCAST)\n";
+			::std::cerr << "\t-s,--skip-non-compute\tignore non-compute operations (LOAD, STORE, GEP, BITCAST, PHI)\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
