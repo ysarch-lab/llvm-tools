@@ -11,7 +11,7 @@
 
 static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
-	{"skip-loads-stores", required_argument, NULL, 's'},
+	{"skip-non-compute", required_argument, NULL, 's'},
 	{"help", required_argument, NULL, 'h'},
 };
 
@@ -58,13 +58,15 @@ static ::std::deque<::std::string> get_inst_dloc(const Instruction &i)
 	return strs;
 }
 
-static void analyze_function(Function &f, counts_t &counts, bool skip_load_store)
+static void analyze_function(Function &f, counts_t &counts, bool skip_non_compute)
 {
 	for (auto bbi = f.begin(); bbi != f.end(); ++bbi)
 		for (auto ii = bbi->begin(); ii != bbi->end(); ++ii) {
-			if (skip_load_store &&
+			if (skip_non_compute &&
 			    (ii->getOpcode() == LLVMLoad ||
-			     ii->getOpcode() == LLVMStore))
+			     ii->getOpcode() == LLVMStore ||
+			     ii->getOpcode() == LLVMBitCast ||
+			     ii->getOpcode() == LLVMGetElementPtr))
 				continue;
 
 			auto locs = get_inst_dloc(*ii);
@@ -78,7 +80,7 @@ static void analyze_function(Function &f, counts_t &counts, bool skip_load_store
 			if (ii->getOpcode() == LLVMCall ||
 			    ii->getOpcode() == LLVMInvoke) {
 				Function f(ii->getCalledValue());
-				analyze_function(f, counts, skip_load_store);
+				analyze_function(f, counts, skip_non_compute);
 			}
 		}
 }
@@ -87,10 +89,10 @@ static void analyze_function(Function &f, counts_t &counts, bool skip_load_store
 int main(int argc, char **argv) {
 	::std::string func_name;
 	char c = -1;
-	bool skip_load_store = false;
+	bool skip_non_compute = false;
 	while ((c = getopt_long(argc, argv, "sf:h", options, NULL)) != -1) {
 		switch (c) {
-		case 's': skip_load_store = true; break;
+		case 's': skip_non_compute = true; break;
 		case 'f': func_name = ::std::string(optarg); break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
@@ -122,7 +124,7 @@ int main(int argc, char **argv) {
 
 	for (auto &f:func_stack) {
 		counts_t counts;
-		analyze_function(f, counts, skip_load_store);
+		analyze_function(f, counts, skip_non_compute);
 		size_t total = 0;
 		for (auto &count: counts) {
 			::std::cout << f << ": " << count.first << ": " << count.second << "\n";
