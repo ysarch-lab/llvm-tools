@@ -17,9 +17,9 @@ add_definitions(${LLVM_DEFINITIONS})
 message(STATUS "Found LLVM version: ${LLVM_VERSION}")
 
 add_executable(op-counter
+               counter.cpp
                Function.cpp
 	       Instruction.cpp
-               main.cpp
                Module.cpp)
 
 llvm_map_components_to_libnames(llvm_libs support core irreader)
