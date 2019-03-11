@@ -23,6 +23,7 @@ public:
 	{ return LLVMGetInstructionOpcode(inst_); }
 
 	friend class BasicBlock;
+	friend ::std::ostream & operator << (::std::ostream &, const Instruction &);
 };
 
 ::std::ostream & operator << (::std::ostream &, const Instruction &);

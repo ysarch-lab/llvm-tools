@@ -2,6 +2,8 @@
 
 ::std::ostream & operator << (::std::ostream &O, const Instruction &i)
 {
-	O << i.getOpcode();
+	char * str = LLVMPrintValueToString(i.inst_);
+	O << str;
+	LLVMDisposeMessage(str);
 	return O;
 }
