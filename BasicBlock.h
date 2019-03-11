@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <ostream>
 #include <string>
 
@@ -42,6 +43,7 @@ public:
 	class successor_iterator {
 		LLVMValueRef bb_term_;
 		unsigned successor_id_;
+		::std::unique_ptr<BasicBlock> instance_ = nullptr;
 	public:
 		successor_iterator(LLVMBasicBlockRef &bb, int successor = 0):bb_term_(LLVMGetBasicBlockTerminator(bb)), successor_id_(successor)
 		{
@@ -53,24 +55,22 @@ public:
 		{ return successor_id_ != i.successor_id_; }
 
 		const successor_iterator & operator++()
-		{ ++successor_id_; return *this; }
+		{ ++successor_id_; instance_ = nullptr; return *this; }
 
 
-		BasicBlock operator *()
-		{
-			auto ref = succ_ref();
-			return BasicBlock(ref);
-		}
+		BasicBlock& operator *()
+		{ return *get_instance(); }
 
-		::std::unique_ptr<BasicBlock> operator -> ()
-		{
-			auto ref = succ_ref();
-			return ::std::unique_ptr<BasicBlock>(new BasicBlock(ref));
-		}
+		BasicBlock* operator -> ()
+		{ return get_instance(); }
 
 	private:
-		LLVMBasicBlockRef succ_ref() {
-			return LLVMGetSuccessor(bb_term_, successor_id_);
+		BasicBlock *get_instance() {
+			if (!instance_) {
+				auto ref = LLVMGetSuccessor(bb_term_, successor_id_);
+				instance_ = ::std::unique_ptr<BasicBlock>(new BasicBlock(ref));
+			}
+			return instance_.get();
 		}
 	};
 
