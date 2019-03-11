@@ -17,20 +17,31 @@ public:
 	class bb_iterator {
 		LLVMValueRef &func_;
 		LLVMBasicBlockRef bb_;
+		::std::unique_ptr<BasicBlock> instance_ = nullptr;
 	public:
 		bb_iterator(LLVMValueRef &f, LLVMBasicBlockRef bb):func_(f), bb_(bb) {}
 
 		bool operator != (const bb_iterator &bb)
 		{ return bb_ != bb.bb_; }
 
-		BasicBlock operator *()
-		{ return BasicBlock(bb_); }
+		BasicBlock& operator *()
+		{ return *get_instance_(); }
 
-		::std::unique_ptr<BasicBlock> operator -> ()
-		{ return ::std::unique_ptr<BasicBlock>(new BasicBlock(bb_)); }
+		BasicBlock* operator -> ()
+		{ return get_instance_(); }
 
 		const bb_iterator & operator++()
-		{ bb_ = LLVMGetNextBasicBlock(bb_); return *this; }
+		{
+			bb_ = LLVMGetNextBasicBlock(bb_);
+			instance_ = nullptr;
+			return *this;
+		}
+	private:
+		BasicBlock *get_instance_(){
+			if (!instance_)
+				instance_ = ::std::unique_ptr<BasicBlock>(new BasicBlock(bb_));
+			return instance_.get();
+		}
 	};
 
 	bb_iterator begin()
