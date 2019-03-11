@@ -22,17 +22,17 @@ public:
 
 	static BasicBlock fromIntruction(const Instruction &i);
 
-	const ::std::string getName()
+	const ::std::string getName() const
 	{ return ::std::string(LLVMGetBasicBlockName(bb_)); }
 
 	bool operator == (const BasicBlock &other) const
 	{ return bb_ == other.bb_; }
 
 	class inst_iterator {
-		LLVMBasicBlockRef &bb_;
+		const LLVMBasicBlockRef &bb_;
 		LLVMValueRef inst_;
 	public:
-		inst_iterator(LLVMBasicBlockRef &bb, LLVMValueRef inst):bb_(bb), inst_(inst) {}
+		inst_iterator(const LLVMBasicBlockRef &bb, LLVMValueRef inst):bb_(bb), inst_(inst) {}
 
 		bool operator != (const inst_iterator &i)
 		{ return inst_ != i.inst_; }
@@ -47,10 +47,10 @@ public:
 		{ inst_ = LLVMGetNextInstruction(inst_); return *this; }
 	};
 
-	inst_iterator begin()
+	inst_iterator begin() const
 	{ return inst_iterator(bb_, LLVMGetFirstInstruction(bb_)); }
 
-	inst_iterator end()
+	inst_iterator end() const
 	{ return inst_iterator(bb_, nullptr); }
 
 	class successor_iterator {

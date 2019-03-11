@@ -62,7 +62,7 @@ static ::std::deque<::std::string> get_inst_dloc(const Instruction &i)
 
 static ::std::unordered_map<::std::string, ::std::string> pretty_names_;
 
-static ::std::string get_pretty_name(BasicBlock &bb)
+static ::std::string get_pretty_name(const BasicBlock &bb)
 {
 	::std::string name = bb.getName();
 	::std::string &pretty_name = pretty_names_[name];
