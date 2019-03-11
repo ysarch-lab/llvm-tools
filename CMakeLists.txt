@@ -20,7 +20,8 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(CGRAPH REQUIRED libcgraph)
 pkg_check_modules(GVC REQUIRED libgvc)
 
-set(SHARED_SRCS Function.cpp
+set(SHARED_SRCS BasicBlock.cpp
+		Function.cpp
 	        Instruction.cpp
 		Module.cpp)
 

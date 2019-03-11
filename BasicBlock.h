@@ -7,10 +7,21 @@
 
 #include "Instruction.h"
 
+class BasicBlock;
+
+namespace std {
+template <> struct hash<BasicBlock> {
+	size_t operator()(const BasicBlock &bb) const;
+};
+};
+
 class BasicBlock {
 	LLVMBasicBlockRef bb_ = nullptr;
 public:
 	BasicBlock(LLVMBasicBlockRef &bb):bb_(bb) {}
+
+	bool operator == (const BasicBlock &other) const
+	{ return bb_ == other.bb_; }
 
 	class inst_iterator {
 		LLVMBasicBlockRef &bb_;
@@ -81,4 +92,5 @@ public:
 	{ return successor_iterator(bb_, -1); }
 
 	friend ::std::ostream & operator << (::std::ostream &, const BasicBlock &);
+	friend size_t ::std::hash<BasicBlock>::operator() (const BasicBlock &) const;
 };
