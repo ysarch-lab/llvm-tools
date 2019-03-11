@@ -4,6 +4,7 @@
 #include <deque>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <cgraph.h>
@@ -13,6 +14,7 @@
 
 static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
+	{"pretty_names", no_argument, NULL, 'p'},
 	{"help", required_argument, NULL, 'h'},
 };
 
@@ -58,25 +60,47 @@ static ::std::deque<::std::string> get_inst_dloc(const Instruction &i)
 	return strs;
 }
 
-static void graph_function(Function &f, Agraph_t *g)
+static ::std::unordered_map<::std::string, ::std::string> pretty_names_;
+
+static ::std::string get_pretty_name(BasicBlock &bb)
+{
+	::std::string name = bb.getName();
+	::std::string &pretty_name = pretty_names_[name];
+
+	if (!pretty_name.empty())
+		return pretty_name;
+
+	::std::deque<::std::string> prefix;
+	for (auto ii = bb.begin(); ii != bb.end(); ++ii) {
+		auto locs = get_inst_dloc(*ii);
+		if (locs.size() == 1 && locs[0] == "unknown")
+			continue;
+		if (prefix.empty()) {
+			prefix.swap(locs);
+			continue;
+		}
+		for (int i = 0; i < ::std::min(prefix.size(), locs.size()); ++i) {
+			if (locs[i] != prefix[i]) {
+				prefix.erase(prefix.begin() + i, prefix.end());
+				break;
+			}
+		}
+	}
+	if (prefix.size() == 0)
+		pretty_name = name;
+	else
+		pretty_name = prefix.back();
+	return pretty_name;
+}
+
+static void graph_function(Function &f, Agraph_t *g, bool pretty_names)
 {
 	for (auto bbi = f.begin(); bbi != f.end(); ++bbi) {
-		::std::deque<::std::string> names;
-		for (auto ii = bbi->begin(); ii != bbi->end(); ++ii) {
-			auto locs = get_inst_dloc(*ii);
-			::std::string combined;
-			for (auto &loc: locs) {
-				if (combined.size() > 0)
-					combined += ':';
-				combined += loc;
-			}
-			names.push_back(combined);
-		}
-		::std::string name = bbi->getName();
+		::std::string name = pretty_names ? get_pretty_name(*bbi) : bbi->getName();
 		auto my_node = agnode(g, const_cast<char*>(name.c_str()), 1);
 		for (auto succi = bbi->successor_begin();
 		     succi != bbi->successor_end(); ++ succi) {
-			::std::string name = succi->getName();
+			::std::string name = pretty_names ? get_pretty_name(*succi) : succi->getName();
 			auto succ_node = agnode(g, const_cast<char*>(name.c_str()), 1);
 			agedge(g, my_node, succ_node, nullptr, 1);
 		}
@@ -87,15 +111,18 @@ static void graph_function(Function &f, Agraph_t *g)
 int main(int argc, char **argv) {
 	::std::string func_name;
 	char c = -1;
-	while ((c = getopt_long(argc, argv, "sf:h", options, NULL)) != -1) {
+	bool pretty_names = false;
+	while ((c = getopt_long(argc, argv, "sf:ph", options, NULL)) != -1) {
 		switch (c) {
 		case 'f': func_name = ::std::string(optarg); break;
+		case 'p': pretty_names = true; break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
 			            << ::std::endl;
 		case 'h':
 			::std::cerr << "Available options:\n";
 			::std::cerr << "\t-f,--function\t\tfunction name (prefix) to analyze\n";
+			::std::cerr << "\t-p,--pretty-names\t\tUse debug location to determined basic block name\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
@@ -124,7 +151,7 @@ int main(int argc, char **argv) {
 	for (auto &f:func_stack) {
 		Agraph_t *g = agopen(const_cast<char*>(f.getName().c_str()),
 		                     Agstrictdirected, nullptr);
-		graph_function(f, g);
+		graph_function(f, g, pretty_names);
 		gvLayout(ctx, g, "dot");
 		gvRenderFilename(ctx, g, "png", (f.getName() + ".png").c_str());
 		gvFreeLayout(ctx, g);
