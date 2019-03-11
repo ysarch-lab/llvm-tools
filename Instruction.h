@@ -21,6 +21,8 @@ public:
 
 	LLVMOpcode getOpcode() const
 	{ return LLVMGetInstructionOpcode(inst_); }
+
+	friend class BasicBlock;
 };
 
 ::std::ostream & operator << (::std::ostream &, const Instruction &);
