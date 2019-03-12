@@ -31,20 +31,28 @@ public:
 	class inst_iterator {
 		const LLVMBasicBlockRef &bb_;
 		LLVMValueRef inst_;
+		::std::unique_ptr<Instruction> instance_ = nullptr;
 	public:
 		inst_iterator(const LLVMBasicBlockRef &bb, LLVMValueRef inst):bb_(bb), inst_(inst) {}
 
 		bool operator != (const inst_iterator &i)
 		{ return inst_ != i.inst_; }
 
-		Instruction operator *()
-		{ return Instruction(inst_); }
+		Instruction& operator *()
+		{ return *get_instance_(); }
 
-		::std::unique_ptr<Instruction> operator -> ()
-		{ return ::std::unique_ptr<Instruction>(new Instruction(inst_)); }
+		Instruction* operator -> ()
+		{ return get_instance_(); }
 
 		const inst_iterator & operator++()
-		{ inst_ = LLVMGetNextInstruction(inst_); return *this; }
+		{ inst_ = LLVMGetNextInstruction(inst_); instance_ = nullptr; return *this; }
+	private:
+		Instruction * get_instance_()
+		{
+			if (!instance_)
+				instance_.reset(new Instruction(inst_));
+			return instance_.get();
+		}
 	};
 
 	inst_iterator begin() const
