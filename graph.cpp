@@ -94,7 +94,13 @@ static ::std::string get_pretty_name(const BasicBlock &bb)
 	return pretty_name;
 }
 
-static void graph_function(Function &f, Agraph_t *g, bool pretty_names)
+struct config{
+	bool pretty_names = false;
+	bool control_flow = false;
+	bool data_flow = false;
+};
+
+static void graph_function(Function &f, Agraph_t *g, const config &c)
 {
 	for (auto bbi = f.begin(); bbi != f.end(); ++bbi) {
 
@@ -107,22 +113,25 @@ static void graph_function(Function &f, Agraph_t *g, bool pretty_names)
 			}
 		}
 
-		::std::string name = pretty_names ? get_pretty_name(*bbi) : bbi->getName();
+		::std::string name = c.pretty_names ? get_pretty_name(*bbi) : bbi->getName();
 		auto my_node = agnode(g, const_cast<char*>(name.c_str()), 1);
 		// Add data edges
 		for (auto &pred:preds) {
+			if (!c.data_flow)
+				break;
 			if (pred == *bbi)
 				continue;
-			::std::string name = pretty_names ? get_pretty_name(pred) : pred.getName();
+			::std::string name = c.pretty_names ? get_pretty_name(pred) : pred.getName();
 			auto pred_node = agnode(g, const_cast<char*>(name.c_str()), 1);
 			auto edge = agedge(g, pred_node, my_node, nullptr, 1);
 			agsafeset(edge, "color", "red", "black");
 		}
 
 		// Add CF edges
-		for (auto succi = bbi->successor_begin();
-		     succi != bbi->successor_end(); ++ succi) {
-			::std::string name = pretty_names ? get_pretty_name(*succi) : succi->getName();
+		for (auto succi = bbi->successor_begin(),
+		          succe = bbi->successor_end();
+		     succi != succe && c.control_flow; ++ succi) {
+			::std::string name = c.pretty_names ? get_pretty_name(*succi) : succi->getName();
 			auto succ_node = agnode(g, const_cast<char*>(name.c_str()), 1);
 			agedge(g, my_node, succ_node, nullptr, 1);
 		}
@@ -133,11 +142,13 @@ static void graph_function(Function &f, Agraph_t *g, bool pretty_names)
 int main(int argc, char **argv) {
 	::std::string func_name;
 	char c = -1;
-	bool pretty_names = false;
-	while ((c = getopt_long(argc, argv, "sf:ph", options, NULL)) != -1) {
+	config conf;
+	while ((c = getopt_long(argc, argv, "sf:pcdh", options, NULL)) != -1) {
 		switch (c) {
 		case 'f': func_name = ::std::string(optarg); break;
-		case 'p': pretty_names = true; break;
+		case 'p': conf.pretty_names = true; break;
+		case 'c': conf.control_flow = true; break;
+		case 'd': conf.data_flow = true; break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
 			            << ::std::endl;
@@ -145,6 +156,8 @@ int main(int argc, char **argv) {
 			::std::cerr << "Available options:\n";
 			::std::cerr << "\t-f,--function\t\tfunction name (prefix) to analyze\n";
 			::std::cerr << "\t-p,--pretty-names\t\tUse debug location to determined basic block name\n";
+			::std::cerr << "\t-c,--control-flow\t\tPrint control flow edges\n";
+			::std::cerr << "\t-d,--control-flow\t\tPrint control flow edges\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
@@ -173,7 +186,7 @@ int main(int argc, char **argv) {
 	for (auto &f:func_stack) {
 		Agraph_t *g = agopen(const_cast<char*>(f.getName().c_str()),
 		                     Agstrictdirected, nullptr);
-		graph_function(f, g, pretty_names);
+		graph_function(f, g, conf);
 		gvLayout(ctx, g, "dot");
 		gvRenderFilename(ctx, g, "png", (f.getName() + ".png").c_str());
 		gvFreeLayout(ctx, g);
