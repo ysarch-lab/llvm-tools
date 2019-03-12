@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <cgraph.h>
@@ -96,8 +97,29 @@ static ::std::string get_pretty_name(const BasicBlock &bb)
 static void graph_function(Function &f, Agraph_t *g, bool pretty_names)
 {
 	for (auto bbi = f.begin(); bbi != f.end(); ++bbi) {
+
+		::std::unordered_set<BasicBlock> preds;
+
+		for (auto ii = bbi->begin(); ii != bbi->end(); ++ii) {
+			for (auto opi = ii->op_begin(); opi != ii->op_end(); ++opi) {
+				if (opi.isInstruction())
+					preds.insert(BasicBlock::fromIntruction(*opi));
+			}
+		}
+
 		::std::string name = pretty_names ? get_pretty_name(*bbi) : bbi->getName();
 		auto my_node = agnode(g, const_cast<char*>(name.c_str()), 1);
+		// Add data edges
+		for (auto &pred:preds) {
+			if (pred == *bbi)
+				continue;
+			::std::string name = pretty_names ? get_pretty_name(pred) : pred.getName();
+			auto pred_node = agnode(g, const_cast<char*>(name.c_str()), 1);
+			auto edge = agedge(g, pred_node, my_node, nullptr, 1);
+			agsafeset(edge, "color", "red", "black");
+		}
+
+		// Add CF edges
 		for (auto succi = bbi->successor_begin();
 		     succi != bbi->successor_end(); ++ succi) {
 			::std::string name = pretty_names ? get_pretty_name(*succi) : succi->getName();
