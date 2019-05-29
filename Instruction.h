@@ -74,8 +74,50 @@ public:
 	op_iterator op_end()
 	{ return op_iterator(*this, getNumOperands()); }
 
+	class use_iterator {
+		Instruction &inst_;
+		LLVMUseRef use_ = nullptr;
+		::std::unique_ptr<Instruction> instance_ = nullptr;
+	public:
+		use_iterator(Instruction &i, LLVMUseRef &&u): inst_(i), use_(u) {}
+
+		bool operator != (const use_iterator &i)
+		{ return &inst_ != &i.inst_ || use_ != i.use_; }
+
+		Instruction& operator *()
+		{ return *get_instance_(); }
+
+		Instruction* operator -> ()
+		{ return get_instance_(); }
+
+		bool isInstruction()
+		{ return !!get_instance_(); }
+
+		const use_iterator & operator++()
+		{ use_ = LLVMGetNextUse(use_); instance_ = nullptr; return *this; }
+
+		LLVMValueRef value() const
+		{ return LLVMGetUser(use_); }
+	private:
+		Instruction * get_instance_() {
+			if (!instance_) {
+				LLVMValueRef v = value();
+				if (LLVMIsAInstruction(v))
+					instance_.reset(new Instruction(v));
+			}
+			return instance_.get();
+		}
+	};
+
+	use_iterator use_begin()
+	{ return use_iterator(*this, LLVMGetFirstUse(inst_)); }
+
+	use_iterator use_end()
+	{ return use_iterator(*this, nullptr); }
+
 	friend class BasicBlock;
 	friend class op_iterator;
+	friend class use_iterator;
 	friend ::std::ostream & operator << (::std::ostream &, const Instruction &);
 };
 
