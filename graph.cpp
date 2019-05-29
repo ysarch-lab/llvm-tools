@@ -16,6 +16,8 @@
 static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
 	{"pretty_names", no_argument, NULL, 'p'},
+	{"control-flow", no_argument, NULL, 'c'},
+	{"data-flow", no_argument, NULL, 'd'},
 	{"help", required_argument, NULL, 'h'},
 };
 
@@ -166,7 +168,7 @@ int main(int argc, char **argv) {
 			::std::cerr << "\t-f,--function\t\tfunction name (prefix) to analyze\n";
 			::std::cerr << "\t-p,--pretty-names\t\tUse debug location to determined basic block name\n";
 			::std::cerr << "\t-c,--control-flow\t\tPrint control flow edges\n";
-			::std::cerr << "\t-d,--control-flow\t\tPrint control flow edges\n";
+			::std::cerr << "\t-d,--data-flow\t\tPrint data flow edges\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
