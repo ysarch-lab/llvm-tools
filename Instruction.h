@@ -54,10 +54,13 @@ public:
 
 		const op_iterator & operator++()
 		{ ++op_index_; instance_ = nullptr; return *this; }
+
+		LLVMValueRef value() const
+		{ return LLVMGetOperand(inst_.inst_, op_index_); }
 	private:
 		Instruction * get_instance_() {
 			if (!instance_) {
-				LLVMValueRef v = LLVMGetOperand(this->inst_.inst_, op_index_);
+				LLVMValueRef v = value();
 				if (LLVMIsAInstruction(v))
 					instance_.reset(new Instruction(v));
 			}
