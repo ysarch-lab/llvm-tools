@@ -41,7 +41,7 @@ public:
 		op_iterator(Instruction &i, int idx): inst_(i), op_index_(idx) {}
 
 		bool operator != (const op_iterator &i)
-		{ return op_index_ != i.op_index_; }
+		{ return &inst_ != &i.inst_ || op_index_ != i.op_index_; }
 
 		Instruction& operator *()
 		{ return *get_instance_(); }
