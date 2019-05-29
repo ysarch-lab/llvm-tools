@@ -18,6 +18,7 @@ static const struct option options[] = {
 	{"pretty_names", no_argument, NULL, 'p'},
 	{"control-flow", no_argument, NULL, 'c'},
 	{"data-flow", no_argument, NULL, 'd'},
+	{"memory-flow", no_argument, NULL, 'm'},
 	{"help", required_argument, NULL, 'h'},
 };
 
@@ -100,6 +101,7 @@ struct config{
 	bool pretty_names = false;
 	bool control_flow = false;
 	bool data_flow = false;
+	bool mem_flow = false;
 };
 
 static void graph_function(Function &f, Agraph_t *g, const config &c)
@@ -107,6 +109,7 @@ static void graph_function(Function &f, Agraph_t *g, const config &c)
 	for (auto bbi = f.begin(); bbi != f.end(); ++bbi) {
 
 		::std::unordered_set<BasicBlock> preds;
+		::std::unordered_set<BasicBlock> mem_preds;
 
 		// Iterate over all instructions in the BB
 		for (auto ii = bbi->begin(); ii != bbi->end(); ++ii) {
@@ -122,6 +125,15 @@ static void graph_function(Function &f, Agraph_t *g, const config &c)
 						::std::cerr << "UNKNOWN operand\n";
 				}
 			}
+			if (ii->getOpcode() == LLVMLoad) {
+				auto ptr = ii->getOperandInstruction(0);
+				for (auto usei = ptr.use_begin(); usei != ptr.use_end(); ++usei)
+					if (usei.isInstruction()) {
+						if (usei->getOpcode() == LLVMStore)
+							mem_preds.insert(BasicBlock::fromIntruction(*usei));
+					} else
+						::std::cerr << "USE IS NOT AN INSTRUCTION!!\n";
+			}
 		}
 
 		::std::string name = c.pretty_names ? get_pretty_name(*bbi) : bbi->getName();
@@ -136,6 +148,18 @@ static void graph_function(Function &f, Agraph_t *g, const config &c)
 			auto pred_node = agnode(g, const_cast<char*>(name.c_str()), 1);
 			auto edge = agedge(g, pred_node, my_node, nullptr, 1);
 			agsafeset(edge, "color", "red", "black");
+		}
+
+		// Add mem edges
+		for (auto &mem_pred:mem_preds) {
+			if (!c.mem_flow)
+				break;
+			if (mem_pred == *bbi)
+				continue;
+			::std::string name = c.pretty_names ? get_pretty_name(mem_pred) : mem_pred.getName();
+			auto pred_node = agnode(g, const_cast<char*>(name.c_str()), 1);
+			auto edge = agedge(g, pred_node, my_node, nullptr, 1);
+			agsafeset(edge, "color", "green", "black");
 		}
 
 		// Add CF edges
@@ -154,12 +178,13 @@ int main(int argc, char **argv) {
 	::std::string func_name;
 	char c = -1;
 	config conf;
-	while ((c = getopt_long(argc, argv, "sf:pcdh", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "sf:pcdmh", options, NULL)) != -1) {
 		switch (c) {
 		case 'f': func_name = ::std::string(optarg); break;
 		case 'p': conf.pretty_names = true; break;
 		case 'c': conf.control_flow = true; break;
 		case 'd': conf.data_flow = true; break;
+		case 'm': conf.mem_flow = true; break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
 			            << ::std::endl;
@@ -169,6 +194,7 @@ int main(int argc, char **argv) {
 			::std::cerr << "\t-p,--pretty-names\t\tUse debug location to determined basic block name\n";
 			::std::cerr << "\t-c,--control-flow\t\tPrint control flow edges\n";
 			::std::cerr << "\t-d,--data-flow\t\tPrint data flow edges\n";
+			::std::cerr << "\t-m,--mem-flow\t\tPrint memory flow edges\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
