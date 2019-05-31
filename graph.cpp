@@ -115,9 +115,9 @@ static void graph_function(Function &f, Agraph_t *g, const config &c)
 		for (auto ii = bbi->begin(); ii != bbi->end(); ++ii) {
 			// Iterate over all operands of an instruction
 			for (auto opi = ii->op_begin(); opi != ii->op_end(); ++opi) {
-				if (opi.isInstruction())
+				if (opi.isInstruction()) {
 					preds.insert(BasicBlock::fromIntruction(*opi));
-				else {
+				} else {
 					auto val = opi.value();
 					if (!LLVMIsConstant(val) &&
 					    !LLVMIsAArgument(val) &&
