@@ -23,4 +23,4 @@ LLVM_OPT=$LLVM_PREFIX/bin/opt
 $LLVM_LINK "$D"/*.parse.ll | $LLVM_OPT -always-inline -internalize -internalize-public-api-list=$EXEC_FUNCTION,$RUN_FUNCTION -globaldce -stats -S -o "$MODEL_NAME.ll"
 
 # Run optimization passes
-$LLVM_OPT "$MODEL_NAME.ll" -stats -S -O3 -disable-simplify-libcalls -sroa -mem2reg | $LLVM_OPT -force-attribute="$EXEC_FUNCTION:alwaysinline" -always-inline -O3 -S -o "$MODEL_NAME.opt.ll"
+$LLVM_OPT "${MODEL_NAME}.ll" -stats -S -O3 -disable-simplify-libcalls -sroa -mem2reg | $LLVM_OPT -force-attribute="$EXEC_FUNCTION:alwaysinline" -always-inline -O3 -S -o "${MODEL_NAME}.opt.ll"
