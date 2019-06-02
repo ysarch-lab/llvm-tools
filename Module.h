@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <ostream>
+#include <string>
 
 #include <llvm-c/Core.h>
 
@@ -16,6 +17,8 @@ public:
 	  ::std::swap(created_, m.created_); }
 	Module(LLVMModuleRef m) :module_(m), created_(false) {};
 	~Module();
+
+	::std::string getName() const;
 
 	LLVMModuleRef & get()
 	{ return module_; }
