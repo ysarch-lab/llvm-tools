@@ -24,6 +24,8 @@ public:
 		return LLVMGetCalledValue(inst_);
 	}
 
+	::std::string getName() const;
+
 	LLVMOpcode getOpcode() const
 	{ return LLVMGetInstructionOpcode(inst_); }
 
