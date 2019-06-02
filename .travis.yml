@@ -77,6 +77,21 @@ matrix:
             # From sources above
             - llvm-7-dev
             - clang-7
+    - env:
+        - LLVM_VERSION=8
+        # llvm passes -Werror=date-time which is only supported in gcc-4.9+
+        - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-8
+            - ubuntu-toolchain-r-test
+          packages:
+            - libedit-dev
+            - g++-4.9
+            # From sources above
+            - llvm-8-dev
+            - clang-8
 before_install:
     - eval "${MATRIX_EVAL}"
     - export LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
