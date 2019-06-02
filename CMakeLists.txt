@@ -10,11 +10,21 @@ if(NOT CMAKE_BUILD_TYPE)
     "MinSizeRel" "RelWithDebInfo")
 endif(NOT CMAKE_BUILD_TYPE)
 
-find_package(LLVM REQUIRED CONFIG)
-include_directories(${LLVM_INCLUDE_DIRS})
-add_definitions(${LLVM_DEFINITIONS})
+if (DEFINED LLVM_CONFIG)
+	# Use --libdir for compatibility with older LLVM(<4)
+	execute_process(COMMAND ${LLVM_CONFIG} --libdir OUTPUT_VARIABLE
+		CUSTOM_LLVM_LIBDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+	find_package(LLVM REQUIRED PATHS "${CUSTOM_LLVM_LIBDIR}/cmake/llvm"
+		NO_DEFAULT_PATH)
+else()
+	find_package(LLVM REQUIRED)
+endif()
 
 message(STATUS "Found LLVM version: ${LLVM_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(CGRAPH REQUIRED libcgraph)

@@ -84,5 +84,5 @@ before_install:
 script:
    - mkdir build
    - cd build
-   - cmake .. -DLLVM_CONFIG=$LLVM_CONFIG
+   - cmake .. -DLLVM_CONFIG=$LLVM_CONFIG -DCMAKE_FIND_DEBUG_MODE=ON
    - make -j4
