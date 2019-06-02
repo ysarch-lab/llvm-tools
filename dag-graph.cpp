@@ -18,12 +18,14 @@ static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
 	{"pretty_names", no_argument, NULL, 'p'},
 	{"skip_stores", no_argument, NULL, 's'},
+	{"skip_loads", no_argument, NULL, 'l'},
 	{"help", required_argument, NULL, 'h'},
 };
 
 struct config{
 	bool pretty_names = false;
 	bool skip_stores = false;
+	bool skip_loads = false;
 };
 
 static ::std::string get_inst_name(const Instruction &i, bool pretty_names)
@@ -51,6 +53,10 @@ static ::std::string get_inst_name(const Instruction &i, bool pretty_names)
 	// Iterate over all operands of an instruction
 	for (auto opi = i.op_begin(); opi != i.op_end(); ++opi) {
 		if (opi.isInstruction()) {
+			if (c.skip_loads && opi->getOpcode() == LLVMLoad)
+				continue;
+
+			// Expand dependencies of getelementptr op
 			if (opi->getOpcode() == LLVMGetElementPtr) {
 				auto ptr_names = get_dependecy_names(*opi, c);
 				names.insert(names.end(), ptr_names.begin(), ptr_names.end());
@@ -97,11 +103,12 @@ int main(int argc, char **argv) {
 	::std::string func_name;
 	char c = -1;
 	config conf;
-	while ((c = getopt_long(argc, argv, "f:psh", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "f:pslh", options, NULL)) != -1) {
 		switch (c) {
 		case 'f': func_name = ::std::string(optarg); break;
 		case 'p': conf.pretty_names = true; break;
 		case 's': conf.skip_stores = true; break;
+		case 'l': conf.skip_loads = true; break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
 			            << ::std::endl;
