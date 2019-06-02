@@ -6,6 +6,8 @@
 #include <llvm-c/Core.h>
 #include "BasicBlock.h"
 
+class Module;
+
 class Function {
 	LLVMValueRef func_ = nullptr;
 public:
@@ -13,6 +15,8 @@ public:
 
 	::std::string getName() const
 	{ return ::std::string(LLVMGetValueName(func_)); }
+
+	Module getModule() const;
 
 	class bb_iterator {
 		LLVMValueRef &func_;

@@ -8,10 +8,13 @@
 
 class Module {
 	LLVMModuleRef module_ = nullptr;
+	bool created_ = true;
 public:
 	Module(const char* file);
 	Module(Module &&m)
-	{ ::std::swap(module_, m.module_); }
+	{ ::std::swap(module_, m.module_);
+	  ::std::swap(created_, m.created_); }
+	Module(LLVMModuleRef m) :module_(m), created_(false) {};
 	~Module();
 
 	LLVMModuleRef & get()

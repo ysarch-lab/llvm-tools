@@ -22,7 +22,15 @@ Module::Module(const char *file)
 
 Module::~Module()
 {
-	LLVMDisposeModule(module_);
+	if (created_)
+		LLVMDisposeModule(module_);
+}
+
+::std::string Module::getName() const
+{
+	size_t size = 0;
+	const char *name = LLVMGetModuleIdentifier(module_, &size);
+	return ::std::string(name, size);
 }
 
 ::std::ostream & operator << (::std::ostream &O, const Module &m)
