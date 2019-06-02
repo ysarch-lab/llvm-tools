@@ -1,5 +1,7 @@
 #include "Instruction.h"
 
+#include <llvm-c/Core.h>
+
 ::std::ostream & operator << (::std::ostream &O, const Instruction &i)
 {
 	char * str = LLVMPrintValueToString(i.inst_);
