@@ -45,17 +45,17 @@ static ::std::string get_inst_name(const Instruction &i, bool pretty_names)
 	return name;
 }
 
-::std::deque<::std::string> get_dependecy_names(Instruction &i, bool pretty_names)
+::std::deque<::std::string> get_dependecy_names(Instruction &i, const config &c)
 {
 	::std::deque<::std::string>  names;
 	// Iterate over all operands of an instruction
 	for (auto opi = i.op_begin(); opi != i.op_end(); ++opi) {
 		if (opi.isInstruction()) {
 			if (opi->getOpcode() == LLVMGetElementPtr) {
-				auto ptr_names = get_dependecy_names(*opi, pretty_names);
+				auto ptr_names = get_dependecy_names(*opi, c);
 				names.insert(names.end(), ptr_names.begin(), ptr_names.end());
 			} else {
-				::std::string op_name = get_inst_name(*opi, pretty_names);
+				::std::string op_name = get_inst_name(*opi, c.pretty_names);
 				names.push_back(op_name);
 			}
 		}
@@ -73,7 +73,7 @@ static void graph_function(Function &f, Agraph_t *g, const config &c)
 			if (c.skip_stores && ii->getOpcode() == LLVMStore)
 				continue;
 
-			auto pred_names = get_dependecy_names(*ii, c.pretty_names);
+			auto pred_names = get_dependecy_names(*ii, c);
 			if (pred_names.empty())
 				continue;
 
