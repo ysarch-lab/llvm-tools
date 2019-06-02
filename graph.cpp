@@ -51,7 +51,7 @@ static void graph_function(Function &f, Agraph_t *g, const config &c)
 						::std::cerr << "UNKNOWN operand\n";
 				}
 			}
-			if (ii->getOpcode() == LLVMLoad) {
+			if (c.mem_flow && ii->getOpcode() == LLVMLoad) {
 				auto ptr = ii->getOperandInstruction(0);
 				for (auto usei = ptr.use_begin(); usei != ptr.use_end(); ++usei)
 					if (usei.isInstruction()) {
@@ -78,8 +78,6 @@ static void graph_function(Function &f, Agraph_t *g, const config &c)
 
 		// Add mem edges
 		for (auto &mem_pred:mem_preds) {
-			if (!c.mem_flow)
-				break;
 			if (mem_pred == *bbi)
 				continue;
 			::std::string name = c.pretty_names ? get_pretty_name(mem_pred) : mem_pred.getName();
