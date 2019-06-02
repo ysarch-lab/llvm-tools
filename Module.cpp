@@ -16,9 +16,8 @@ Module::Module(const char *file)
 		throw ::std::runtime_error(msg);
 
 	msg = nullptr;
-	if (LLVMParseIRInContext(LLVMGetGlobalContext(), file_buf, &module_, &msg)) {
+	if (LLVMParseIRInContext(LLVMGetGlobalContext(), file_buf, &module_, &msg))
 		throw ::std::runtime_error(msg);
-	}
 }
 
 Module::~Module()
