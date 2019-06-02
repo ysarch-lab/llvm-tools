@@ -6,5 +6,6 @@ cmake_install.cmake
 *.swp
 *.ll
 
-op-counter
+dag-graph
 graph
+op-counter
