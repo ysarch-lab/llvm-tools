@@ -1,50 +1,12 @@
 language: cpp
 
-sudo: false
-dist: trusty
+dist: xenial
 
 cache:
   apt: true
 
-
 matrix:
   include:
-    - env:
-        - LLVM_VERSION=3.9
-      addons:
-        apt:
-          sources:
-            - llvm-toolchain-trusty-3.9
-          packages:
-            - libedit-dev
-            - g++-4.8
-            # From sources above
-            - llvm-3.9-dev
-            - clang-3.9
-    - env:
-        - LLVM_VERSION=4.0
-      addons:
-        apt:
-          sources:
-            - llvm-toolchain-trusty-4.0
-          packages:
-            - libedit-dev
-            - g++-4.8
-            # From sources above
-            - llvm-4.0-dev
-            - clang-4.0
-    - env:
-        - LLVM_VERSION=5.0
-      addons:
-        apt:
-          sources:
-            - llvm-toolchain-trusty-5.0
-          packages:
-            - libedit-dev
-            - g++-4.8
-            # From sources above
-            - llvm-5.0-dev
-            - clang-5.0
     - env:
         - LLVM_VERSION=6.0
         # llvm passes -Werror=date-time which is only supported in gcc-4.9+
@@ -52,7 +14,7 @@ matrix:
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-6.0
+            - llvm-toolchain-xenial-6.0
             - ubuntu-toolchain-r-test
           packages:
             - libedit-dev
@@ -68,7 +30,7 @@ matrix:
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-7
+            - llvm-toolchain-xenial-7
             - ubuntu-toolchain-r-test
           packages:
             - libedit-dev
@@ -84,7 +46,7 @@ matrix:
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-8
+            - llvm-toolchain-xenial-8
             - ubuntu-toolchain-r-test
           packages:
             - libedit-dev
@@ -92,6 +54,7 @@ matrix:
             # From sources above
             - llvm-8-dev
             - clang-8
+
 before_install:
     - eval "${MATRIX_EVAL}"
     - export LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
