@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
 		                     Agstrictdirected, nullptr);
 		graph_function(f, g, conf);
 		gvLayout(ctx, g, "dot");
-		gvRenderFilename(ctx, g, "png", (f.getName() + ".png").c_str());
+		gvRenderFilename(ctx, g, "png", (f.getModule().getName() + "_" + f.getName() + ".png").c_str());
 		gvFreeLayout(ctx, g);
 		agclose(g);
 	}
