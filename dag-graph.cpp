@@ -30,10 +30,10 @@ struct config{
 	bool skip_geps = false;
 };
 
-static ::std::string get_inst_name(const Instruction &i, bool pretty_names)
+static ::std::string get_inst_name(const Instruction &i, const config &c)
 {
 	auto locs = get_inst_dloc(i);
-	if (locs.empty() or !pretty_names)
+	if (locs.empty() or !c.pretty_names)
 		return i.getName();
 	if (locs.size() == 1)
 		locs.front() += i.getName();
@@ -63,7 +63,7 @@ static ::std::string get_inst_name(const Instruction &i, bool pretty_names)
 				auto ptr_names = get_dependecy_names(*opi, c);
 				names.insert(names.end(), ptr_names.begin(), ptr_names.end());
 			} else {
-				::std::string op_name = get_inst_name(*opi, c.pretty_names);
+				::std::string op_name = get_inst_name(*opi, c);
 				names.push_back(op_name);
 			}
 		}
@@ -87,7 +87,7 @@ static void graph_function(Function &f, Agraph_t *g, const config &c)
 			if (pred_names.empty())
 				continue;
 
-			::std::string name = get_inst_name(*ii, c.pretty_names);
+			::std::string name = get_inst_name(*ii, c);
 			auto my_node = agnode(g, const_cast<char*>(name.c_str()), 1);
 			for (auto &op_name:pred_names) {
 				// Avoid self edges when using pretty names
