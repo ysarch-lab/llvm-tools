@@ -99,13 +99,20 @@ static void graph_function(Function &f, Agraph_t *g, const config &c)
 
 			::std::string name = get_inst_name(*ii, c);
 			auto my_node = agnode(g, const_cast<char*>(name.c_str()), 1);
+			if (name.find("Output_CIM") != ::std::string::npos)
+				// attribute, value, default_value
+				agsafeset(my_node, "color", "red", "black");
 			for (auto &op_name:pred_names) {
 				// Avoid self edges when using pretty names
-				if (name == op_name)
+				if (name == op_name && c.pretty_names)
 					continue;
 				auto pred_node = agnode(g, const_cast<char*>(op_name.c_str()), 1);
+				if (op_name.find("Input_CIM") != ::std::string::npos)
+					// attribute, value, default_value
+					agsafeset(pred_node, "color", "green", "black");
 				auto edge = agedge(g, pred_node, my_node, nullptr, 1);
-				agsafeset(edge, "color", "red", "black");
+				// attribute, value, default_value
+				agsafeset(edge, "color", "blue", "black");
 			}
 		}
 
