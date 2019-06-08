@@ -35,6 +35,7 @@ $LLVM_LINK "$D"/*.parse.ll | $LLVM_OPT -internalize -internalize-public-api-list
 
 
 # Run optimization passes
-$LLVM_OPT "${MODEL_NAME}.ll" -stats -S -O3 -disable-simplify-libcalls -sroa -mem2reg | $LLVM_OPT -force-attribute="$EXEC_FUNCTION:alwaysinline" -always-inline -O3 -S -o "${MODEL_NAME}.opt.ll"
+# First try to get rid of alloca-s then inline everything other than PRNGs
+$LLVM_OPT "${MODEL_NAME}.ll" -stats -S -sroa -mem2reg | $LLVM_OPT -force-attribute="$EXEC_FUNCTION:alwaysinline" -force-attribute="$EXEC_SIM_FUNCTION:alwaysinline" -force-attribute="$RUN_SIM_FUNCTION:alwaysinline"  -force-attribute="__pnl_builting_mt_rand_normal:noinline" -force-attribute="__pnl_builtin_mt_rand_double:noinline"  -always-inline -inline -O3 -disable-simplify-libcalls -sroa -mem2reg -S -o "${MODEL_NAME}.opt.ll"
 
 $LLVM_OPT "${MODEL_NAME}.opt.ll" -S -stats --allow-unroll-and-jam --loop-unroll --loop-unroll-and-jam --loop-versioning --enable-unroll-and-jam --partial-unrolling-threshold=999999 --unroll-allow-partial --unroll-allow-peeling --unroll-allow-remainder --unroll-count=5 --unroll-runtime --unroll-remainder --unroll-runtime-multi-exit --enable-npm-unroll-and-jam --unroll-force-peel-count=5 -O3 -o "${MODEL_NAME}.opt2.ll"
