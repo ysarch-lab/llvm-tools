@@ -20,7 +20,7 @@ static const struct option options[] = {
 	{"skip_stores", no_argument, NULL, 's'},
 	{"skip_loads", no_argument, NULL, 'l'},
 	{"skip_geps", no_argument, NULL, 'g'},
-	{"help", required_argument, NULL, 'h'},
+	{"help", no_argument, NULL, 'h'},
 };
 
 struct config{
