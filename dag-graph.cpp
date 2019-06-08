@@ -20,6 +20,9 @@ static const struct option options[] = {
 	{"skip_stores", no_argument, NULL, 's'},
 	{"skip_loads", no_argument, NULL, 'l'},
 	{"skip_geps", no_argument, NULL, 'g'},
+	{"name_limit", required_argument, NULL, 'n'},
+	{"auxiliary_name_limit", required_argument, NULL, 'a'},
+	{"name_count", required_argument, NULL, 'c'},
 	{"help", no_argument, NULL, 'h'},
 };
 
@@ -28,6 +31,9 @@ struct config{
 	bool skip_stores = false;
 	bool skip_loads = false;
 	bool skip_geps = false;
+	int primary_name_limit = -1;
+	int auxiliary_name_limit = -1;
+	int name_count = 1;
 };
 
 static ::std::string get_inst_name(const Instruction &i, const config &c)
@@ -37,8 +43,12 @@ static ::std::string get_inst_name(const Instruction &i, const config &c)
 		return i.getName();
 	if (locs.size() == 1)
 		locs.front() += i.getName();
-	locs.resize(::std::min(locs.size(), 4ul));
-	while (locs.size() > 1)
+
+	if (c.primary_name_limit > -1 && locs.size() > c.primary_name_limit)
+		locs.resize(c.primary_name_limit);
+	else if (c.auxiliary_name_limit > -1 && locs.size() > c.auxiliary_name_limit)
+		locs.resize(c.auxiliary_name_limit);
+	while (locs.size() > c.name_count)
 		locs.pop_front();
 	::std::string name;
 	for (auto &loc: locs) {
@@ -107,13 +117,16 @@ int main(int argc, char **argv) {
 	::std::string func_name;
 	char c = -1;
 	config conf;
-	while ((c = getopt_long(argc, argv, "f:pslgh", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "f:pslgn:a:c:h", options, NULL)) != -1) {
 		switch (c) {
 		case 'f': func_name = ::std::string(optarg); break;
 		case 'p': conf.pretty_names = true; break;
 		case 's': conf.skip_stores = true; break;
 		case 'l': conf.skip_loads = true; break;
 		case 'g': conf.skip_geps = true; break;
+		case 'n': conf.primary_name_limit = ::std::stoi(optarg); break;
+		case 'a': conf.auxiliary_name_limit = ::std::stoi(optarg); break;
+		case 'c': conf.name_count = ::std::stoi(optarg); break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
 			            << ::std::endl;
