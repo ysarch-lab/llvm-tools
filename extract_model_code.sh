@@ -8,8 +8,18 @@ echo "Model name: '$MODEL_NAME'"
 
 EXEC_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*exec_wrap[^"]*'`
 echo "Execute function: $EXEC_FUNCTION"
+
 RUN_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*run_wrap[^"]*'`
 echo "Run function: $RUN_FUNCTION"
+
+EXEC_SIM_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*exec_sim_wrap[^"]*'`
+echo "Execute simulation function: $EXEC_SIM_FUNCTION"
+
+RUN_SIM_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*run_sim_wrap[^"]*'`
+echo "Run simulation function: $RUN_SIM_FUNCTION"
+
+EVALUATE_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*eval[^"]*'`
+echo "Evaluate function: $EVALUATE_FUNCTION"
 
 if [ "x$LLVM_PREFIX" == "x" ]; then
 	LLVM_PREFIX=/usr/local/llvm-git
@@ -19,8 +29,10 @@ LLVM_LINK=$LLVM_PREFIX/bin/llvm-link
 LLVM_OPT=$LLVM_PREFIX/bin/opt
 
 # Link all .parse.ll files.
-# Inline all functions, and internalize all but the call to exec_*.
-$LLVM_LINK "$D"/*.parse.ll | $LLVM_OPT -always-inline -internalize -internalize-public-api-list=$EXEC_FUNCTION,$RUN_FUNCTION -globaldce -stats -S -o "$MODEL_NAME.ll"
+# Internalize and eliminate all but exec_*.
+$LLVM_LINK "$D"/*.parse.ll | $LLVM_OPT -internalize -internalize-public-api-list=$EXEC_FUNCTION,$RUN_FUNCTION,$EXEC_SIM_FUNCTION,$RUN_SIM_FUNCTION,$EVALUATE_FUNCTION -globaldce -stats -S -o "$MODEL_NAME.ll"
+
+
 
 # Run optimization passes
 $LLVM_OPT "${MODEL_NAME}.ll" -stats -S -O3 -disable-simplify-libcalls -sroa -mem2reg | $LLVM_OPT -force-attribute="$EXEC_FUNCTION:alwaysinline" -always-inline -O3 -S -o "${MODEL_NAME}.opt.ll"
