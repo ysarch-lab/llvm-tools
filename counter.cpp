@@ -13,11 +13,13 @@
 static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
 	{"skip-non-compute", no_argument, NULL, 's'},
+	{"skip-calls", no_argument, NULL, 'c'},
 	{"help", no_argument, NULL, 'h'},
 };
 
 struct config {
 	bool skip_non_compute = false;
+	bool skip_calls = false;
 };
 
 using counts_t = ::std::unordered_map<::std::string, size_t>;
@@ -42,8 +44,9 @@ static void analyze_function(Function &f, counts_t &counts, const config &c)
 				combined += loc;
 			}
 			counts[combined] += 1;
-			if (ii->getOpcode() == LLVMCall ||
-			    ii->getOpcode() == LLVMInvoke) {
+			if ((ii->getOpcode() == LLVMCall ||
+			     ii->getOpcode() == LLVMInvoke) &&
+			    !c.skip_calls) {
 				Function f(ii->getCalledValue());
 				analyze_function(f, counts, c);
 			}
@@ -54,9 +57,10 @@ int main(int argc, char **argv) {
 	::std::string func_name;
 	char c = -1;
 	config conf;
-	while ((c = getopt_long(argc, argv, "sf:h", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "scf:h", options, NULL)) != -1) {
 		switch (c) {
 		case 's': conf.skip_non_compute = true; break;
+		case 'c': conf.skip_calls = true; break;
 		case 'f': func_name = ::std::string(optarg); break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
@@ -65,6 +69,7 @@ int main(int argc, char **argv) {
 			::std::cerr << "Available options:\n";
 			::std::cerr << "\t-f,--function\t\tfunction name (prefix) to analyze\n";
 			::std::cerr << "\t-s,--skip-non-compute\tignore non-compute operations (LOAD, STORE, GEP, BITCAST, PHI)\n";
+			::std::cerr << "\t-c,--skip-calls\tDo not recursively analyze callee functions.\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
