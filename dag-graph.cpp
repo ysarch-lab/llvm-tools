@@ -17,12 +17,12 @@
 static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
 	{"pretty_names", no_argument, NULL, 'p'},
-	{"skip_stores", no_argument, NULL, 's'},
-	{"skip_loads", no_argument, NULL, 'l'},
-	{"skip_geps", no_argument, NULL, 'g'},
-	{"name_limit", required_argument, NULL, 'n'},
-	{"auxiliary_name_limit", required_argument, NULL, 'a'},
-	{"name_count", required_argument, NULL, 'c'},
+	{"skip-stores", no_argument, NULL, 's'},
+	{"skip-loads", no_argument, NULL, 'l'},
+	{"skip-geps", no_argument, NULL, 'g'},
+	{"name-limit", required_argument, NULL, 'n'},
+	{"auxiliary-name-limit", required_argument, NULL, 'a'},
+	{"name-count", required_argument, NULL, 'c'},
 	{"help", no_argument, NULL, 'h'},
 };
 
@@ -141,6 +141,12 @@ int main(int argc, char **argv) {
 			::std::cerr << "Available options:\n";
 			::std::cerr << "\t-f,--function\t\tfunction name (prefix) to analyze\n";
 			::std::cerr << "\t-p,--pretty-names\t\tUse debug location to determined basic block name\n";
+			::std::cerr << "\t-s,--skip-stores\t\tSkip STORE operations\n";
+			::std::cerr << "\t-l,--skip-loads\t\tSkip LOAD operations\n";
+			::std::cerr << "\t-g,--skip-geps\t\tSkip GetElementPtr operations\n";
+			::std::cerr << "\t-n,--name-limit <n>\t\tLimit naming depth to 'n' if greater (Default: -1, no limit)\n";
+			::std::cerr << "\t-a,--auxiliary-name-limit <n>\t\tLimit naming depth to 'n' if greater and smaller than --name-limit (Default: -1, no limit)\n";
+			::std::cerr << "\t-c,--name-count <n>\t\tCombine at most 'n' name levels (Default: 1)\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
