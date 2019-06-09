@@ -12,8 +12,8 @@
 
 static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
-	{"skip-non-compute", required_argument, NULL, 's'},
-	{"help", required_argument, NULL, 'h'},
+	{"skip-non-compute", no_argument, NULL, 's'},
+	{"help", no_argument, NULL, 'h'},
 };
 
 using counts_t = ::std::unordered_map<::std::string, size_t>;
