@@ -16,13 +16,17 @@ static const struct option options[] = {
 	{"help", no_argument, NULL, 'h'},
 };
 
+struct config {
+	bool skip_non_compute = false;
+};
+
 using counts_t = ::std::unordered_map<::std::string, size_t>;
 
-static void analyze_function(Function &f, counts_t &counts, bool skip_non_compute)
+static void analyze_function(Function &f, counts_t &counts, const config &c)
 {
 	for (auto bbi = f.begin(); bbi != f.end(); ++bbi)
 		for (auto ii = bbi->begin(); ii != bbi->end(); ++ii) {
-			if (skip_non_compute &&
+			if (c.skip_non_compute &&
 			    (ii->getOpcode() == LLVMLoad ||
 			     ii->getOpcode() == LLVMStore ||
 			     ii->getOpcode() == LLVMBitCast ||
@@ -41,7 +45,7 @@ static void analyze_function(Function &f, counts_t &counts, bool skip_non_comput
 			if (ii->getOpcode() == LLVMCall ||
 			    ii->getOpcode() == LLVMInvoke) {
 				Function f(ii->getCalledValue());
-				analyze_function(f, counts, skip_non_compute);
+				analyze_function(f, counts, c);
 			}
 		}
 }
@@ -49,10 +53,10 @@ static void analyze_function(Function &f, counts_t &counts, bool skip_non_comput
 int main(int argc, char **argv) {
 	::std::string func_name;
 	char c = -1;
-	bool skip_non_compute = false;
+	config conf;
 	while ((c = getopt_long(argc, argv, "sf:h", options, NULL)) != -1) {
 		switch (c) {
-		case 's': skip_non_compute = true; break;
+		case 's': conf.skip_non_compute = true; break;
 		case 'f': func_name = ::std::string(optarg); break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
@@ -87,7 +91,7 @@ int main(int argc, char **argv) {
 
 	for (auto &f:func_stack) {
 		counts_t counts;
-		analyze_function(f, counts, skip_non_compute);
+		analyze_function(f, counts, conf);
 		size_t total = 0;
 		for (auto &count: counts) {
 			::std::cout << f << ": " << count.first << ": " << count.second << "\n";
