@@ -10,6 +10,7 @@
 class Instruction {
 	LLVMValueRef inst_ = nullptr;
 public:
+	Instruction() {}
 	Instruction(LLVMValueRef &&inst):inst_(inst)
 	{ assert(LLVMIsAInstruction(inst_)); }
 	Instruction(LLVMValueRef &inst):inst_(inst)
