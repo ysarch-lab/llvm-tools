@@ -15,15 +15,20 @@ template <> struct hash<BasicBlock> {
 };
 };
 
+class Function;
+
 class BasicBlock {
 	LLVMBasicBlockRef bb_ = nullptr;
 public:
 	BasicBlock(LLVMBasicBlockRef &bb):bb_(bb) {}
 
-	static BasicBlock fromIntruction(const Instruction &i);
+	static BasicBlock fromIntruction(const Instruction &i)
+	{ return i.getParent(); }
 
 	const ::std::string getName() const
 	{ return ::std::string(LLVMGetBasicBlockName(bb_)); }
+
+	Function getParent() const;
 
 	bool operator == (const BasicBlock &other) const
 	{ return bb_ == other.bb_; }
