@@ -85,11 +85,11 @@ public:
 	{ return op_iterator(*this, getNumOperands()); }
 
 	class use_iterator {
-		Instruction &inst_;
+		const Instruction &inst_;
 		LLVMUseRef use_ = nullptr;
 		::std::unique_ptr<Instruction> instance_ = nullptr;
 	public:
-		use_iterator(Instruction &i, LLVMUseRef &&u): inst_(i), use_(u) {}
+		use_iterator(const Instruction &i, LLVMUseRef &&u): inst_(i), use_(u) {}
 
 		bool operator != (const use_iterator &i)
 		{ return &inst_ != &i.inst_ || use_ != i.use_; }
@@ -119,10 +119,10 @@ public:
 		}
 	};
 
-	use_iterator use_begin()
+	use_iterator use_begin() const
 	{ return use_iterator(*this, LLVMGetFirstUse(inst_)); }
 
-	use_iterator use_end()
+	use_iterator use_end() const
 	{ return use_iterator(*this, nullptr); }
 
 	friend class BasicBlock;
