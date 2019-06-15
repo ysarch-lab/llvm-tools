@@ -18,6 +18,9 @@ public:
 
 	Module getModule() const;
 
+	LLVMValueRef value() const
+	{ return func_; }
+
 	class bb_iterator {
 		LLVMValueRef &func_;
 		LLVMBasicBlockRef bb_;
