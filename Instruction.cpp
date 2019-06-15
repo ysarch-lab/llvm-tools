@@ -1,4 +1,5 @@
 #include "Instruction.h"
+#include "BasicBlock.h"
 
 #include <llvm-c/Core.h>
 
@@ -9,6 +10,7 @@
 	LLVMDisposeMessage(str);
 	return O;
 }
+
 ::std::string Instruction::getName() const
 {
 	const char * name = LLVMGetValueName(inst_);
@@ -22,4 +24,10 @@
 		ret.assign(name);
 	}
 	return ret;
+}
+
+BasicBlock Instruction::getParent() const
+{
+	LLVMBasicBlockRef bb = LLVMGetInstructionParent(inst_);
+	return BasicBlock(bb);
 }

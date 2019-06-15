@@ -7,6 +7,8 @@
 
 #include <llvm-c/Core.h>
 
+class BasicBlock;
+
 class Instruction {
 	LLVMValueRef inst_ = nullptr;
 public:
@@ -26,6 +28,11 @@ public:
 	}
 
 	::std::string getName() const;
+
+	LLVMValueRef value() const
+	{ return inst_; }
+
+	BasicBlock getParent() const;
 
 	LLVMOpcode getOpcode() const
 	{ return LLVMGetInstructionOpcode(inst_); }
