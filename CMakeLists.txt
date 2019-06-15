@@ -36,11 +36,13 @@ set(SHARED_SRCS BasicBlock.cpp
 add_executable(op-counter counter.cpp ${SHARED_SRCS})
 add_executable(graph graph.cpp ${SHARED_SRCS})
 add_executable(dag-graph dag-graph.cpp ${SHARED_SRCS})
+add_executable(param-restrict param-restrict.cpp ${SHARED_SRCS})
 
 llvm_map_components_to_libnames(llvm_libs support core irreader)
 
 # Link against LLVM libraries
 target_link_libraries(op-counter ${llvm_libs})
+target_link_libraries(param-restrict ${llvm_libs})
 
 foreach(T IN ITEMS graph dag-graph)
 	target_link_libraries(${T} ${llvm_libs})

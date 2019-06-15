@@ -9,3 +9,4 @@ cmake_install.cmake
 dag-graph
 graph
 op-counter
+param-restrict
