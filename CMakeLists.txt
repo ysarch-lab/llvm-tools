@@ -37,11 +37,12 @@ add_executable(op-counter counter.cpp ${SHARED_SRCS})
 add_executable(graph graph.cpp ${SHARED_SRCS})
 add_executable(dag-graph dag-graph.cpp ${SHARED_SRCS})
 add_executable(param-restrict param-restrict.cpp ${SHARED_SRCS})
+add_executable(result-range result-range.cpp ${SHARED_SRCS})
 
-llvm_map_components_to_libnames(llvm_libs support core irreader)
+llvm_map_components_to_libnames(llvm_libs support core irreader analysis passes)
 
 # Link against LLVM libraries
-foreach(T IN ITEMS dag-graph graph op-counter param-restrict)
+foreach(T IN ITEMS dag-graph graph op-counter param-restrict result-range)
 	target_link_libraries(${T} ${llvm_libs})
 endforeach()
 
