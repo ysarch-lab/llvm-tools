@@ -17,7 +17,9 @@
 #include <llvm/Support/SourceMgr.h>
 
 static const struct option options[] = {
-	{"help", required_argument, NULL, 'h'},
+	{"function", required_argument, NULL, 'f'},
+	{"arg", required_argument, NULL, 'a'},
+	{"help", no_argument, NULL, 'h'},
 };
 
 using val_list = ::std::deque<::std::pair<::llvm::Value*, ::llvm::Instruction*>>;
@@ -33,10 +35,10 @@ static void get_stored_values(::llvm::Value *val, val_list &stored_vals) {
 		get_stored_values(u, stored_vals);
 }
 
-static val_list find_result_values(::llvm::Function &f) {
+static val_list find_arg_values(::llvm::Function &f, unsigned arg) {
 	// Run analysis pass on function
 	::std::cerr << "Running on function: " << f.getName().str() << "\n";
-	::llvm::Argument &output_arg = f.arg_begin()[4];
+	::llvm::Argument &output_arg = f.arg_begin()[arg];
 	::std::cerr << "Output argument: ";
 	output_arg.dump();
 	val_list vals;
@@ -44,10 +46,18 @@ static val_list find_result_values(::llvm::Function &f) {
 	return vals;
 }
 
+struct config {
+	::std::string func = "run_";
+	unsigned arg = 4;
+};
+
 int main(int argc, char **argv) {
 	char c = -1;
-	while ((c = getopt_long(argc, argv, "h", options, NULL)) != -1) {
+	config conf;
+	while ((c = getopt_long(argc, argv, "f:a:h", options, NULL)) != -1) {
 		switch (c) {
+		case 'f': conf.func = ::std::string(optarg); break;
+		case 'a': conf.arg = ::std::stoi(optarg); break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
 			            << ::std::endl;
@@ -65,13 +75,12 @@ int main(int argc, char **argv) {
 		modules.push_back(::llvm::parseIRFile(argv[i], error, context));
 	}
 
-	static const ::std::string func_name = "run_";
 	for (auto &m:modules) {
 		for (auto &f: m->functions()) {
-			auto mm = ::std::mismatch(func_name.begin(),
-			                          func_name.end(),
+			auto mm = ::std::mismatch(conf.func.begin(),
+			                          conf.func.end(),
 						  f.getName().begin());
-			if (mm.first == func_name.end()) {
+			if (mm.first == conf.func.end()) {
 				::llvm::legacy::PassManager pm;
 				::llvm::Pass *p = ::llvm::createLazyValueInfoPass();
 				pm.add(p);
@@ -79,7 +88,7 @@ int main(int argc, char **argv) {
 				::llvm::LazyValueInfoWrapperPass *wp =
 					(::llvm::LazyValueInfoWrapperPass *)p;
 				auto &lvi = wp->getLVI();
-				for (auto v:find_result_values(f)) {
+				for (auto v:find_arg_values(f, conf.arg)) {
 					lvi.getConstantRange(v.first, v.second->getParent()).dump();
 					::std::cerr << " is known about: ";
 					v.first->dump();
