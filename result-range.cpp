@@ -15,6 +15,7 @@
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/raw_os_ostream.h>
 
 static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
@@ -26,8 +27,8 @@ using val_list = ::std::deque<::std::pair<::llvm::Value*, ::llvm::Instruction*>>
 
 static void get_stored_values(::llvm::Value *val, val_list &stored_vals) {
 	if (::llvm::StoreInst *i = ::llvm::dyn_cast<::llvm::StoreInst>(val)) {
-		::std::cerr << "Used in store: ";
-		i->dump();
+		::llvm::raw_os_ostream os(::std::cout);
+		os << "Used in store:" << *i << "\n";
 		stored_vals.push_back(::std::make_pair(i->getValueOperand(), i));
 
 	}
@@ -37,10 +38,11 @@ static void get_stored_values(::llvm::Value *val, val_list &stored_vals) {
 
 static val_list find_arg_values(::llvm::Function &f, unsigned arg) {
 	// Run analysis pass on function
-	::std::cerr << "Running on function: " << f.getName().str() << "\n";
+	::std::cout << "Running on function: " << f.getName().str() << "\n";
+	::llvm::raw_os_ostream os(::std::cout);
 	::llvm::Argument &output_arg = f.arg_begin()[arg];
-	::std::cerr << "Output argument: ";
-	output_arg.dump();
+	os << "Output argument: " << output_arg << "\n";
+	os.flush();
 	val_list vals;
 	get_stored_values(&output_arg, vals);
 	return vals;
@@ -89,9 +91,9 @@ int main(int argc, char **argv) {
 					(::llvm::LazyValueInfoWrapperPass *)p;
 				auto &lvi = wp->getLVI();
 				for (auto v:find_arg_values(f, conf.arg)) {
-					lvi.getConstantRange(v.first, v.second->getParent()).dump();
-					::std::cerr << " is known about: ";
-					v.first->dump();
+					::llvm::raw_os_ostream os(::std::cout);
+					os << *v.first << " is known to be in: ";
+					os << lvi.getConstantRange(v.first, v.second->getParent()) << "\n";
 				}
 				wp->releaseMemory();
 			}
