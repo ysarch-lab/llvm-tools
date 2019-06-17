@@ -4,12 +4,9 @@
 #include <deque>
 #include <iostream>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include "Module.h"
-#include "debug_location.h"
 
 static const struct option options[] = {
 	{"param", required_argument, NULL, 'p'},
