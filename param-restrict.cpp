@@ -15,7 +15,7 @@ static const struct option options[] = {
 	{"param", required_argument, NULL, 'p'},
 	{"lower-bound", required_argument, NULL, 'l'},
 	{"upper-bound", required_argument, NULL, 'u'},
-	{"help", required_argument, NULL, 'h'},
+	{"help", no_argument, NULL, 'h'},
 };
 
 struct config {
@@ -172,6 +172,8 @@ int main(int argc, char **argv) {
 		case 'h':
 			::std::cerr << "Available options:\n";
 			::std::cerr << "\t-p,--param\t\tParameter name\n";
+			::std::cerr << "\t-l,--lower-bound\t\tParameter lower bound\n";
+			::std::cerr << "\t-u,--upper-bound\t\tParameter upper bound\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
