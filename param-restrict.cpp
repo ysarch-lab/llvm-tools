@@ -6,7 +6,14 @@
 #include <string>
 #include <vector>
 
-#include "Module.h"
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/SourceMgr.h>
 
 static const struct option options[] = {
 	{"param", required_argument, NULL, 'p'},
@@ -21,40 +28,40 @@ struct config {
 	double upper_bound = 0.0;
 };
 
-using int_seq = ::std::deque<int>;
+using int_seq = ::std::deque<::llvm::ConstantInt *>;
 
-static int_seq trace_gep(Instruction &inst, Instruction &alloca_i) {
-	if (inst.getOpcode() == LLVMAlloca) {
-		assert(inst.getName() == "const_params_loc");
-		alloca_i = inst;
-		return int_seq({0});
+static int_seq trace_gep(::llvm::Instruction *inst, ::llvm::AllocaInst* &alloca_i) {
+	if (::llvm::AllocaInst *i = ::llvm::dyn_cast<::llvm::AllocaInst>(inst)) {
+		assert(i->getName() == "const_params_loc");
+		alloca_i = i;
+		return int_seq({::llvm::ConstantInt::get(i->getContext(), ::llvm::APInt(32, 0))});
 	}
-	assert(inst.getOpcode() == LLVMGetElementPtr);
+	::llvm::GetElementPtrInst *i = ::llvm::cast<::llvm::GetElementPtrInst>(inst);
 
 	int_seq indices;
-	auto opi = inst.op_begin();
-	if (opi.isInstruction()) {
-		indices = trace_gep(*opi, alloca_i);
+	::llvm::Value * ptr = i->getPointerOperand();
+	if (::llvm::Instruction * ptr_i = ::llvm::dyn_cast<::llvm::Instruction>(ptr)) {
+		indices = trace_gep(ptr_i, alloca_i);
 	} else {
-		assert(LLVMIsAArgument(opi.value()));
-		auto fn = LLVMGetParamParent(opi.value());
-		auto use = LLVMGetFirstUse(fn);
+		::llvm::Argument * arg = ::llvm::cast<::llvm::Argument>(ptr);
+		auto fn = arg->getParent();
 		// Check that we have only one call size
-		assert(use != nullptr);
-		assert(LLVMGetNextUse(use) == nullptr);
+		assert(fn->hasOneUse());
+		::llvm::User * user = *(fn->user_begin());
 
-		Instruction call_site(LLVMGetUser(use));
-		assert(call_site.getOpcode() == LLVMCall);
+		::llvm::CallInst * call_site = ::llvm::cast<::llvm::CallInst>(user);
 
 		// Function to call is one of the arguments
-		switch (call_site.getNumOperands()) {
-		case 5: { // Component (Mechanism)
-			Instruction p_op = call_site.getOperandInstruction(0);
+		switch (call_site->getNumArgOperands()) {
+		case 4: { // Component (Mechanism), params is the first arg
+			::llvm::Instruction *p_op =
+			  ::llvm::cast<::llvm::Instruction>(call_site->getOperand(0));
 			indices = trace_gep(p_op, alloca_i);
 			break;
 		}
-		case 6: { // Wrapper
-			Instruction p_op = call_site.getOperandInstruction(1);
+		case 5: { // Wrapper, params is the second arg
+			::llvm::Instruction *p_op =
+			  ::llvm::cast<::llvm::Instruction>(call_site->getOperand(1));
 			indices = trace_gep(p_op, alloca_i);
 			break;
 		}
@@ -62,97 +69,87 @@ static int_seq trace_gep(Instruction &inst, Instruction &alloca_i) {
 			assert(false);
 		}
 	}
-	++opi; // Skip the first '0' index
-	for (++opi; opi != inst.op_end(); ++opi) {
-		auto val = opi.value();
-		assert(LLVMIsConstant(val));
-		long long i = LLVMConstIntGetZExtValue(val);
-		indices.push_back(i);
+	for (auto idx_i = i->idx_begin() + 1; idx_i != i->idx_end(); ++idx_i) {
+		indices.push_back(::llvm::cast<::llvm::ConstantInt>(*idx_i));
 	}
 
 	return indices;
 }
 
-static ::std::pair<Instruction, int_seq> find_src_and_indices(Module &m, const ::std::string &name)
+static ::std::pair<::llvm::Instruction *, int_seq>
+find_src_and_indices(::llvm::Module *m, const ::std::string &name)
 {
-	for (auto it = m.func_begin(); it != m.func_end(); ++it)
-		for (auto bbi = it->begin(); bbi != it->end(); ++bbi)
+	for (auto &f:m->functions())
+		for (auto bbi = f.begin(); bbi != f.end(); ++bbi)
 			for (auto ii = bbi->begin(); ii != bbi->end(); ++ii) {
-				Instruction &i = *ii;
-				Instruction alloca_i;
-				if (i.getName() == name) {
+				::llvm::AllocaInst * alloca_i;
+				if (ii->getName() == name) {
 					::std::cerr << "Found: " << name
-					            << " in " << it->getName()
+					            << " in " << f.getName().str()
 						    << "\n";
-					assert(i.getOpcode() == LLVMLoad);
+					assert(::llvm::isa<::llvm::LoadInst>(*ii));
 					// The first param is pointer
-					auto seq = trace_gep(*i.op_begin(), alloca_i);
+					::llvm::Instruction *i = ::llvm::cast<::llvm::Instruction>(ii->op_begin()->get());
+					auto seq = trace_gep(i, alloca_i);
 					return ::std::make_pair(alloca_i, seq);
 				}
 			}
-	return ::std::make_pair(Instruction(), int_seq());
+	return ::std::make_pair(nullptr, int_seq());
 }
 
-static void apply_assumption(const Instruction &src, const int_seq &indices, double lower, double upper)
+static void apply_assumption(::llvm::Instruction *src, const int_seq &indices, double lower, double upper)
 {
-	::std::cerr << "Source: " << src.getName() << "\n";
+	::std::cerr << "Source: " << src->getName().str() << "\n";
 	::std::cerr << "Found indices:";
-	for (int idx:indices)
-		::std::cerr << " " << idx << ",";
+	for (auto *idx:indices)
+		::std::cerr << " " << idx->getZExtValue() << ",";
 	::std::cerr << "\n";
 
-	LLVMValueRef store_val = nullptr;
-	for (auto ui = src.use_begin(); ui != src.use_end(); ++ui) {
-		if (ui->getOpcode() == LLVMStore) {
+	::llvm::StoreInst * store_val = nullptr;
+	for (auto *user:src->users()) {
+		if (::llvm::isa<::llvm::StoreInst>(user)) {
 			assert(store_val == nullptr);
-			store_val = ui.value();
+			store_val = ::llvm::cast<::llvm::StoreInst>(user);
 		}
 	}
 	assert(store_val != nullptr);
+
+	::llvm::Function *f = src->getParent()->getParent();
+	::std::cerr << f->getName().str() << "\n";
+
+	::std::vector<::llvm::Value *> llvm_indices(indices.size());
+	::std::copy(indices.begin(), indices.end(), llvm_indices.begin());
+	::llvm::Argument *param_arg = f->arg_begin() + 1;
+
 	// Create builder and position after parameters set
-	LLVMBuilderRef builder = LLVMCreateBuilder();
-	LLVMPositionBuilder(builder, LLVMGetInstructionParent(store_val), store_val);
+	::llvm::IRBuilder<> builder(store_val);
+	::llvm::Value *orig_gep =
+	  builder.CreateInBoundsGEP(param_arg, llvm_indices, "orig_gep");
+	::llvm::Value *alloca_gep =
+	  builder.CreateInBoundsGEP(src, llvm_indices, "dst_gep");
 
-	std::vector<LLVMValueRef> llvm_indices;
-	llvm_indices.reserve(indices.size()+1);
-	for (int idx:indices) {
-		llvm_indices.push_back(LLVMConstInt(LLVMInt32Type(), idx, false));
-	}
+	::llvm::Value *load_orig = builder.CreateLoad(orig_gep, "load_orig");
+	::llvm::Value *store_orig = builder.CreateStore(load_orig, alloca_gep);
 
-	Function f = src.getParent().getParent();
-	::std::cerr << f.getName() << "\n";
-	LLVMValueRef param_arg = LLVMGetParam(f.value(), 1);
-	LLVMValueRef orig_gep = LLVMBuildGEP(builder,
-	                                     param_arg, llvm_indices.data(),
-					     llvm_indices.size(), "orig_gep");
-	LLVMValueRef alloca_gep = LLVMBuildGEP(builder,
-	                                       src.value(), llvm_indices.data(),
-					       llvm_indices.size(), "dst_gep");
-	LLVMValueRef load_orig = LLVMBuildLoad(builder, orig_gep, "load_orig");
-	LLVMValueRef store_orig = LLVMBuildStore(builder, load_orig, alloca_gep);
-	LLVMValueRef param_val = load_orig;
-	if (LLVMGetTypeKind(LLVMTypeOf(load_orig)) == LLVMArrayTypeKind) {
-		param_val = LLVMBuildExtractValue(builder, load_orig, 0, "extract_param_val");
-	}
+	::llvm::Value *param_val = load_orig;
+	if (param_val->getType()->isArrayTy())
+		param_val = builder.CreateExtractValue(param_val, {0}, "extract_param_val");
 
 	// Create bound conditions
-	LLVMValueRef upper_bound = LLVMConstReal(LLVMTypeOf(param_val), upper);
-	LLVMValueRef lower_bound = LLVMConstReal(LLVMTypeOf(param_val), lower);
+	::llvm::Value * upper_cond = builder.CreateFCmpOLT(param_val,
+	  ::llvm::ConstantFP::get(param_val->getType(), upper), "upper_bound");
+	::llvm::Value * lower_cond = builder.CreateFCmpOGE(param_val,
+	  ::llvm::ConstantFP::get(param_val->getType(), lower), "lower_bound");
 
-	LLVMValueRef upper_cond = LLVMBuildFCmp(builder, LLVMRealOLT, param_val,
-	                                        upper_bound, "upper_bound");
-	LLVMValueRef lower_cond = LLVMBuildFCmp(builder, LLVMRealOGE, param_val,
-	                                        lower_bound, "lower_bound");
+	::llvm::Intrinsic::ID id =
+	  ::llvm::Function::lookupIntrinsicID("llvm.assume");
 
-	// Get assumption intrinsic
-	::std::string assume("llvm.assume");
-	unsigned id = LLVMLookupIntrinsicID(assume.c_str(), assume.size());
-	LLVMTypeRef assume_ty = LLVMInt1Type();
-	LLVMValueRef assume_decl = LLVMGetIntrinsicDeclaration(f.getModule().get(), id, &assume_ty, 1);
-	LLVMBuildCall(builder, assume_decl, &upper_cond, 1, "");
-	LLVMBuildCall(builder, assume_decl, &lower_cond, 1, "");
+	::llvm::Function *assume_decl =
+	  ::llvm::Intrinsic::getDeclaration(f->getParent(), id);
 
-	LLVMDisposeBuilder(builder);
+
+	builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {upper_cond});
+	builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {lower_cond});
 }
 
 int main(int argc, char **argv) {
@@ -179,18 +176,23 @@ int main(int argc, char **argv) {
 		return 2;
 	}
 
-	::std::deque<::std::pair<Module,::std::string>> modules;
+	static ::llvm::LLVMContext context;
+	::std::deque<::std::pair<::std::unique_ptr<::llvm::Module>, ::std::string>> modules;
 	for (int i = optind; i < argc; ++i) {
 		::std::cout << "Parsing file: " << argv[i] << "\n";
-		modules.push_back(::std::make_pair(Module(argv[i]), argv[i]));
+		::llvm::SMDiagnostic error;
+		modules.push_back(::std::make_pair(::llvm::parseIRFile(argv[i], error, context), argv[i]));
 	}
 
 	for (auto &m:modules) {
-		auto res = find_src_and_indices(m.first, conf.param);
+		auto res = find_src_and_indices(m.first.get(), conf.param);
 		int_seq &indices = res.second;
 		if (!res.second.empty()) {
 			apply_assumption(res.first, res.second, conf.lower_bound, conf.upper_bound);
-			LLVMPrintModuleToFile(m.first.get(), m.second.c_str(), nullptr);
+			::std::error_code ec;
+			::llvm::raw_fd_ostream os(m.second, ec, ::llvm::sys::fs::F_Text);
+			m.first->print(os, nullptr);
+			os.close();
 		}
 	}
 
