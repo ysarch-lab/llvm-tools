@@ -36,8 +36,8 @@ set(SHARED_SRCS BasicBlock.cpp
 add_executable(op-counter counter.cpp ${SHARED_SRCS})
 add_executable(graph graph.cpp ${SHARED_SRCS})
 add_executable(dag-graph dag-graph.cpp ${SHARED_SRCS})
-add_executable(param-restrict param-restrict.cpp ${SHARED_SRCS})
-add_executable(result-range result-range.cpp ${SHARED_SRCS})
+add_executable(param-restrict param-restrict.cpp)
+add_executable(result-range result-range.cpp)
 
 llvm_map_components_to_libnames(llvm_libs support core irreader analysis passes)
 
