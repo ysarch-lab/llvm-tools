@@ -20,6 +20,7 @@ static const struct option options[] = {
 	{"control-flow", no_argument, NULL, 'c'},
 	{"data-flow", no_argument, NULL, 'd'},
 	{"memory-flow", no_argument, NULL, 'm'},
+	{"file-type", no_argument, NULL, 't'},
 	{"help", required_argument, NULL, 'h'},
 };
 
@@ -28,6 +29,7 @@ struct config{
 	bool control_flow = false;
 	bool data_flow = false;
 	bool mem_flow = false;
+	::std::string type = "pdf";
 };
 
 static void graph_function(Function &f, Agraph_t *g, const config &c)
@@ -102,9 +104,10 @@ int main(int argc, char **argv) {
 	::std::string func_name;
 	char c = -1;
 	config conf;
-	while ((c = getopt_long(argc, argv, "sf:pcdmh", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "sf:pcdmt:h", options, NULL)) != -1) {
 		switch (c) {
 		case 'f': func_name = ::std::string(optarg); break;
+		case 't': conf.type = ::std::string(optarg); break;
 		case 'p': conf.pretty_names = true; break;
 		case 'c': conf.control_flow = true; break;
 		case 'd': conf.data_flow = true; break;
@@ -119,6 +122,7 @@ int main(int argc, char **argv) {
 			::std::cerr << "\t-c,--control-flow\t\tPrint control flow edges\n";
 			::std::cerr << "\t-d,--data-flow\t\tPrint data flow edges\n";
 			::std::cerr << "\t-m,--mem-flow\t\tPrint memory flow edges\n";
+			::std::cerr << "\t-t,--file-type <T>\t\tFormat of the output (pdf, svg, png, default is pdf)\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
@@ -149,7 +153,8 @@ int main(int argc, char **argv) {
 		                     Agstrictdirected, nullptr);
 		graph_function(f, g, conf);
 		gvLayout(ctx, g, "dot");
-		gvRenderFilename(ctx, g, "pdf", (f.getModule().getName() + "_" + f.getName() + ".pdf").c_str());
+		gvRenderFilename(ctx, g, conf.type.c_str(),
+		                 (f.getModule().getName() + "_" + f.getName() + "." + conf.type).c_str());
 		gvFreeLayout(ctx, g);
 		agclose(g);
 	}
