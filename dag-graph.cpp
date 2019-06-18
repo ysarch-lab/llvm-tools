@@ -23,6 +23,7 @@ static const struct option options[] = {
 	{"name-limit", required_argument, NULL, 'n'},
 	{"auxiliary-name-limit", required_argument, NULL, 'a'},
 	{"name-count", required_argument, NULL, 'c'},
+	{"file-type", required_argument, NULL, 't'},
 	{"help", no_argument, NULL, 'h'},
 };
 
@@ -34,6 +35,7 @@ struct config{
 	int primary_name_limit = -1;
 	int auxiliary_name_limit = -1;
 	int name_count = 1;
+	::std::string type = "pdf";
 };
 
 static ::std::string get_inst_name(const Instruction &i, const config &c)
@@ -124,9 +126,10 @@ int main(int argc, char **argv) {
 	::std::string func_name;
 	char c = -1;
 	config conf;
-	while ((c = getopt_long(argc, argv, "f:pslgn:a:c:h", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "f:pslgn:a:c:t:h", options, NULL)) != -1) {
 		switch (c) {
 		case 'f': func_name = ::std::string(optarg); break;
+		case 't': conf.type = ::std::string(optarg); break;
 		case 'p': conf.pretty_names = true; break;
 		case 's': conf.skip_stores = true; break;
 		case 'l': conf.skip_loads = true; break;
@@ -147,6 +150,7 @@ int main(int argc, char **argv) {
 			::std::cerr << "\t-n,--name-limit <n>\t\tLimit naming depth to 'n' if greater (Default: -1, no limit)\n";
 			::std::cerr << "\t-a,--auxiliary-name-limit <n>\t\tLimit naming depth to 'n' if greater and smaller than --name-limit (Default: -1, no limit)\n";
 			::std::cerr << "\t-c,--name-count <n>\t\tCombine at most 'n' name levels (Default: 1)\n";
+			::std::cerr << "\t-t,--file-type <T>\t\tFormat of the output (pdf, svg, png, default is pdf)\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
@@ -177,7 +181,8 @@ int main(int argc, char **argv) {
 		                     Agstrictdirected, nullptr);
 		graph_function(f, g, conf);
 		gvLayout(ctx, g, "dot");
-		gvRenderFilename(ctx, g, "pdf", (f.getModule().getName() + "_" + f.getName() + ".pdf").c_str());
+		gvRenderFilename(ctx, g, conf.type.c_str(),
+		                 (f.getModule().getName() + "_" + f.getName() + "." + conf.type).c_str());
 		gvFreeLayout(ctx, g);
 		agclose(g);
 	}
