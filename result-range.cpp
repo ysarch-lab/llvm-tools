@@ -38,7 +38,12 @@ static void get_stored_values(::llvm::Value *val, val_list &stored_vals) {
 
 static val_list find_arg_values(::llvm::Function &f, unsigned arg) {
 	// Run analysis pass on function
-	::std::cout << "Running on function: " << f.getName().str() << "\n";
+	::std::cout << "Running on function: " << f.getName().str()
+	            << " (" << f.arg_size() << " args)\n";
+	if (arg >= f.arg_size()) {
+		::std::cerr << "Argument " << arg << " not available. Function has only " << f.arg_size() << " arguments.\n";
+		return val_list();
+	}
 	::llvm::raw_os_ostream os(::std::cout);
 	::llvm::Argument &output_arg = f.arg_begin()[arg];
 	os << "Output argument: " << output_arg << "\n";
