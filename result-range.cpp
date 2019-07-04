@@ -65,6 +65,8 @@ int main(int argc, char **argv) {
 			            << ::std::endl;
 		case 'h':
 			::std::cerr << "Available options:\n";
+			::std::cerr << "\t\t-f,--function <f> Function to examine.\n";
+			::std::cerr << "\t\t-a,--arg <a> Function output argument.\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
