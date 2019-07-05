@@ -43,15 +43,15 @@ llvm_map_components_to_libnames(llvm_libs support core irreader analysis passes)
 
 # Link against LLVM libraries
 foreach(T IN ITEMS dag-graph graph op-counter param-restrict result-range)
-	target_link_libraries(${T} ${llvm_libs})
+	target_link_libraries(${T} PRIVATE ${llvm_libs})
 endforeach()
 
 foreach(T IN ITEMS graph dag-graph)
-	target_link_libraries(${T} ${CGRAPH_LIBRARIES})
-	target_include_directories(${T} PUBLIC ${CGRAPH_INCLUDE_DIRS})
-	target_compile_options(${T} PUBLIC ${CGRAPH_CFLAGS_OTHER})
+	target_link_libraries(${T} PRIVATE ${CGRAPH_LIBRARIES})
+	target_include_directories(${T} PRIVATE ${CGRAPH_INCLUDE_DIRS})
+	target_compile_options(${T} PRIVATE ${CGRAPH_CFLAGS_OTHER})
 
-	target_link_libraries(${T} ${GVC_LIBRARIES})
-	target_include_directories(${T} PUBLIC ${GVC_INCLUDE_DIRS})
-	target_compile_options(${T} PUBLIC ${GVC_CFLAGS_OTHER})
+	target_link_libraries(${T} PRIVATE ${GVC_LIBRARIES})
+	target_include_directories(${T} PRIVATE ${GVC_INCLUDE_DIRS})
+	target_compile_options(${T} PRIVATE ${GVC_CFLAGS_OTHER})
 endforeach()
