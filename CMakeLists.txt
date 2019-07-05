@@ -40,9 +40,17 @@ add_executable(param-restrict param-restrict.cpp)
 add_executable(result-range result-range.cpp)
 
 
+# Work around an LLVM cmake bug that checks DYLIB_COMPONENTS instead of
+# LINK_LLVM_DYLIB
+if(DEFINED LLVM_LINK_LLVM_DYLIB)
+	set(USE_SHARED "USE_SHARED")
+else()
+	set(USE_SHARED "")
+endif()
+
 # Link against LLVM libraries
 foreach(T IN ITEMS dag-graph graph op-counter param-restrict result-range)
-	llvm_config(${T} support core irreader analysis passes)
+	llvm_config(${T} ${USE_SHARED} support core irreader analysis passes)
 endforeach()
 
 foreach(T IN ITEMS graph dag-graph)
