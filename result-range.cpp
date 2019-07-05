@@ -30,7 +30,6 @@ static void get_stored_values(::llvm::Value *val, val_list &stored_vals) {
 		::llvm::raw_os_ostream os(::std::cout);
 		os << "Used in store:" << *i << "\n";
 		stored_vals.push_back(::std::make_pair(i->getValueOperand(), i));
-
 	}
 	for (auto u:val->users())
 		get_stored_values(u, stored_vals);
@@ -46,10 +45,12 @@ static val_list find_arg_values(::llvm::Function &f, unsigned arg) {
 	}
 	::llvm::raw_os_ostream os(::std::cout);
 	::llvm::Argument &output_arg = f.arg_begin()[arg];
-	os << "Output argument: " << output_arg << "\n";
-	os.flush();
+	os << "Argument " << arg << ": " << output_arg << "\n";
 	val_list vals;
 	get_stored_values(&output_arg, vals);
+	if (vals.empty())
+		os << "No stores to selected location.\n";
+	os.flush();
 	return vals;
 }
 
