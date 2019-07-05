@@ -32,6 +32,12 @@ LLVM_OPT=$LLVM_PREFIX/bin/opt
 # Internalize and eliminate all but exec_*.
 $LLVM_LINK "$D"/*.parse.ll | $LLVM_OPT -internalize -internalize-public-api-list=$EXEC_FUNCTION,$RUN_FUNCTION,$EXEC_SIM_FUNCTION,$RUN_SIM_FUNCTION,$EVALUATE_FUNCTION -globaldce -stats -S -o "$MODEL_NAME.ll"
 
+VARIANT=$(basename "$D")
+if [ "x$VARIANT" == "xconst-input" ]; then
+	RANGE_PARAM=$(grep -o 'raw_[^"]*' "$MODEL_NAME.ll" | sort -u | grep offset | head -n1)
+	echo "Selected param: $RANGE_PARAM"
+	./param-restrict -p "$RANGE_PARAM" -l 0 -u 1 $MODEL_NAME.ll
+fi
 
 
 # Run optimization passes
