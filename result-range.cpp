@@ -91,17 +91,17 @@ int main(int argc, char **argv) {
 			                          conf.func.end(),
 						  f.getName().begin());
 			if (mm.first == conf.func.end()) {
-				::llvm::legacy::PassManager pm;
+				::llvm::legacy::FunctionPassManager pm(m.get());
 				::llvm::Pass *p = ::llvm::createLazyValueInfoPass();
 				pm.add(p);
-				pm.run(*m);
+				pm.run(f);
 				::llvm::LazyValueInfoWrapperPass *wp =
 					(::llvm::LazyValueInfoWrapperPass *)p;
 				auto &lvi = wp->getLVI();
 				for (auto v:find_arg_values(f, conf.arg)) {
 					::llvm::raw_os_ostream os(::std::cout);
-					os << *v.first << " is known to be in: ";
-					os << lvi.getConstantRange(v.first, v.second->getParent()) << "\n";
+					os << *v.first << " is known to be in: "
+					   << lvi.getConstantRange(v.first, v.second->getParent()) << "\n";
 				}
 				wp->releaseMemory();
 			}
