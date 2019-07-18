@@ -81,8 +81,14 @@ int main(int argc, char **argv) {
 	::std::deque<::std::unique_ptr<::llvm::Module>> modules;
 	for (int i = optind; i < argc; ++i) {
 		::std::cout << "Parsing file: " << argv[i] << "\n";
+		::llvm::raw_os_ostream errs(::std::cerr);
 		::llvm::SMDiagnostic error;
-		modules.push_back(::llvm::parseIRFile(argv[i], error, context));
+		auto ptr = ::llvm::parseIRFile(argv[i], error, context);
+		if (ptr) {
+			modules.push_back(::std::move(ptr));
+		} else {
+			error.print(argv[i], errs);
+		}
 	}
 
 	for (auto &m:modules) {
