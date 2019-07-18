@@ -25,10 +25,11 @@ static const struct option options[] = {
 
 using val_list = ::std::deque<::std::pair<::llvm::Value*, ::llvm::Instruction*>>;
 
+::llvm::raw_os_ostream llvm_cout(::std::cout);
+
 static void get_stored_values(::llvm::Value *val, val_list &stored_vals) {
 	if (::llvm::StoreInst *i = ::llvm::dyn_cast<::llvm::StoreInst>(val)) {
-		::llvm::raw_os_ostream os(::std::cout);
-		os << "Used in store:" << *i << "\n";
+		llvm_cout << "Used in store:" << *i << "\n";
 		stored_vals.push_back(::std::make_pair(i->getValueOperand(), i));
 	}
 	for (auto u:val->users())
@@ -37,20 +38,19 @@ static void get_stored_values(::llvm::Value *val, val_list &stored_vals) {
 
 static val_list find_arg_values(::llvm::Function &f, unsigned arg) {
 	// Run analysis pass on function
-	::std::cout << "Running on function: " << f.getName().str()
-	            << " (" << f.arg_size() << " args)\n";
+	llvm_cout << "Running on function: " << f.getName().str()
+	           << " (" << f.arg_size() << " args)\n";
 	if (arg >= f.arg_size()) {
 		::std::cerr << "Argument " << arg << " not available. Function has only " << f.arg_size() << " arguments.\n";
 		return val_list();
 	}
-	::llvm::raw_os_ostream os(::std::cout);
 	::llvm::Argument &output_arg = f.arg_begin()[arg];
-	os << "Argument " << arg << ": " << output_arg << "\n";
+	llvm_cout << "Argument " << arg << ": " << output_arg << "\n";
 	val_list vals;
 	get_stored_values(&output_arg, vals);
 	if (vals.empty())
-		os << "No stores to selected location.\n";
-	os.flush();
+		llvm_cout << "No stores to selected location.\n";
+	llvm_cout.flush();
 	return vals;
 }
 
@@ -105,9 +105,9 @@ int main(int argc, char **argv) {
 					(::llvm::LazyValueInfoWrapperPass *)p;
 				auto &lvi = wp->getLVI();
 				for (auto v:find_arg_values(f, conf.arg)) {
-					::llvm::raw_os_ostream os(::std::cout);
-					os << *v.first << " is known to be in: "
-					   << lvi.getConstantRange(v.first, v.second->getParent()) << "\n";
+					llvm_cout << *v.first
+					          << " is known to be in: "
+					          << lvi.getConstantRange(v.first, v.second->getParent()) << "\n";
 				}
 				wp->releaseMemory();
 			}
