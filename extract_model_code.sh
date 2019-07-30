@@ -22,7 +22,7 @@ EVALUATE_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*eval[^"]*'`
 echo "Evaluate function: $EVALUATE_FUNCTION"
 
 if [ "x$LLVM_PREFIX" == "x" ]; then
-	LLVM_PREFIX=/usr/local/llvm-git
+	LLVM_PREFIX=`grep LLVM_DIR CMakeCache.txt | sed 's%.*=\(.*\)cmake/llvm%\1/../%'`
 fi
 
 LLVM_LINK=$LLVM_PREFIX/bin/llvm-link
