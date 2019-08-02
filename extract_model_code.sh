@@ -47,3 +47,6 @@ $LLVM_OPT "${MODEL_NAME}.ll" -stats -S -sroa -mem2reg | $LLVM_OPT -force-attribu
 
 $LLVM_OPT "${MODEL_NAME}.opt.ll" -S -stats --allow-unroll-and-jam --loop-unroll --loop-unroll-and-jam --loop-versioning --enable-unroll-and-jam --partial-unrolling-threshold=999999 --unroll-allow-partial --unroll-allow-peeling --unroll-allow-remainder --unroll-count=5 --unroll-runtime --unroll-remainder --unroll-runtime-multi-exit --enable-npm-unroll-and-jam --unroll-force-peel-count=5 --enable-gvn-memdep --enable-gvn-sink --gvn-hoist-max-bbs=-1 --gvn-hoist-max-chain-length=-1 --gvn-hoist-max-depth=-1 --gvn-max-num-deps=1000000 --gvn-max-recurse-depth=10000000 -O3 -disable-simplify-libcalls -o - | \
 $LLVM_OPT -stats -O3 -disable-simplify-libcalls --enable-gvn-sink --gvn-hoist-max-bbs=-1 --gvn-hoist-max-chain-length=-1 --gvn-hoist-max-depth=-1 --gvn-max-num-deps=1000000 --gvn-max-recurse-depth=10000000 -S -o "${MODEL_NAME}.opt2.ll"
+
+# Scalarize for easier analysis
+$LLVM_OPT --scalarizer -S -O1 -disable-simplify-libcalls "${MODEL_NAME}.opt2.ll"  -o "${MODEL_NAME}.opt2.scalarized.ll"
