@@ -124,7 +124,7 @@ static void apply_assumption(::llvm::Instruction *src, const int_seq &indices, d
 	::llvm::Argument *param_arg = f->arg_begin() + 1;
 
 	// Create builder and position after parameters set
-	::llvm::IRBuilder<> builder(store_val);
+	::llvm::IRBuilder<> builder(store_val->getNextNode());
 	::llvm::Value *orig_gep =
 	  builder.CreateInBoundsGEP(param_arg, llvm_indices, "orig_gep");
 	::llvm::Value *alloca_gep =
