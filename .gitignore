@@ -5,6 +5,7 @@ cmake_install.cmake
 
 *.swp
 *.ll
+*.pdf
 
 dag-graph
 graph
