@@ -36,6 +36,7 @@ VARIANT=$(basename "$D")
 if [ "x$VARIANT" == "xconst-input" ]; then
 	RANGE_PARAM=$(grep -o 'raw_[^"]*' "$MODEL_NAME.ll" | sort -u | grep offset | head -n1)
 	echo "Selected param: $RANGE_PARAM"
+	cp $MODEL_NAME.ll $MODEL_NAME.pre-restrict.ll
 	./param-restrict -p "$RANGE_PARAM" -l 0 -u 1 $MODEL_NAME.ll
 fi
 
