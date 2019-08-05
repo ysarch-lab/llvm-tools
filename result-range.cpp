@@ -20,12 +20,21 @@
 static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
 	{"arg", required_argument, NULL, 'a'},
+	{"no-signed-zeros", no_argument, NULL, 'z'},
 	{"help", no_argument, NULL, 'h'},
 };
 
 using val_list = ::std::deque<::std::pair<::llvm::Value*, ::llvm::Instruction*>>;
 
 ::llvm::raw_os_ostream llvm_cout(::std::cout);
+
+static void set_nsz(::llvm::Function &f)
+{
+	for (auto &bb: f)
+		for (auto &i: bb)
+			if (::llvm::isa<::llvm::FPMathOperator>(i))
+				i.setHasNoSignedZeros(true);
+}
 
 static void get_stored_values(::llvm::Value *val, val_list &stored_vals) {
 	if (::llvm::StoreInst *i = ::llvm::dyn_cast<::llvm::StoreInst>(val)) {
@@ -57,15 +66,17 @@ static val_list find_arg_values(::llvm::Function &f, unsigned arg) {
 struct config {
 	::std::string func = "run_";
 	unsigned arg = 4;
+	bool nsz = false;
 };
 
 int main(int argc, char **argv) {
 	char c = -1;
 	config conf;
-	while ((c = getopt_long(argc, argv, "f:a:h", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "f:a:zh", options, NULL)) != -1) {
 		switch (c) {
 		case 'f': conf.func = ::std::string(optarg); break;
 		case 'a': conf.arg = ::std::stoi(optarg); break;
+		case 'z': conf.nsz = true; break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
 			            << ::std::endl;
@@ -73,6 +84,7 @@ int main(int argc, char **argv) {
 			::std::cerr << "Available options:\n";
 			::std::cerr << "\t\t-f,--function <f> Function to examine.\n";
 			::std::cerr << "\t\t-a,--arg <a> Function output argument.\n";
+			::std::cerr << "\t\t-z,--no-signed-zeros FP operations should ignore sign of 0.0.\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
@@ -97,6 +109,8 @@ int main(int argc, char **argv) {
 			                          conf.func.end(),
 						  f.getName().begin());
 			if (mm.first == conf.func.end()) {
+				if (conf.nsz)
+					set_nsz(f);
 				::llvm::legacy::FunctionPassManager pm(m.get());
 				::llvm::Pass *p = ::llvm::createLazyValueInfoPass();
 				pm.add(p);
