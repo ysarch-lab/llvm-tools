@@ -48,11 +48,12 @@ else()
 	set(USE_SHARED "")
 endif()
 
-# Link against LLVM libraries
+# Link with LLVM libraries
 foreach(T IN ITEMS dag-graph graph op-counter param-restrict result-range)
 	llvm_config(${T} ${USE_SHARED} support core irreader analysis passes)
 endforeach()
 
+# Link graph tools with cgraph
 foreach(T IN ITEMS graph dag-graph)
 	target_link_libraries(${T} PRIVATE ${CGRAPH_LIBRARIES})
 	target_include_directories(${T} PRIVATE ${CGRAPH_INCLUDE_DIRS})
