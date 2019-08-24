@@ -1,6 +1,6 @@
 #!/bin/sh
 
-SHARED="debug_info;llvm;force_runs=2;clear_run_data"
+SHARED="debug_info;llvm;force_runs=2;const_data"
 RM="rm -f"
 MODEL_DIR=~/llvm-tools/models/
 
