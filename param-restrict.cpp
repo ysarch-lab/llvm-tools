@@ -89,9 +89,11 @@ find_src_and_indices(::llvm::Module *m, const ::std::string &name)
 					::std::cerr << "Found: " << name
 					            << " in " << f.getName().str()
 						    << "\n";
-					assert(::llvm::isa<::llvm::LoadInst>(*ii));
+					::llvm::Instruction *i = &*ii;
+					if (::llvm::isa<::llvm::LoadInst>(*ii))
 					// The first param is pointer
-					::llvm::Instruction *i = ::llvm::cast<::llvm::Instruction>(ii->op_begin()->get());
+						i = ::llvm::cast<::llvm::Instruction>(ii->op_begin()->get());
+					assert(::llvm::isa<::llvm::GetElementPtrInst>(i));
 					auto seq = trace_gep(i, alloca_i);
 					return ::std::make_pair(alloca_i, seq);
 				}
