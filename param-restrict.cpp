@@ -4,6 +4,7 @@
 #include <deque>
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <vector>
 
 #include <llvm/IR/Constants.h>
@@ -26,8 +27,8 @@ static const struct option options[] = {
 
 struct config {
 	::std::string param;
-	double lower_bound = 0.0;
-	double upper_bound = 0.0;
+	::std::deque<double> lower_bound;
+	::std::deque<double> upper_bound;
 };
 
 using int_seq = ::std::deque<::llvm::ConstantInt *>;
@@ -104,7 +105,9 @@ find_src_and_indices(::llvm::Module *m, const ::std::string &name)
 	return ::std::make_pair(nullptr, int_seq());
 }
 
-static void apply_assumption(::llvm::Instruction *src, const int_seq &indices, double lower, double upper)
+static void apply_assumption(::llvm::Instruction *src, const int_seq &indices,
+		             const ::std::deque<double> &lower,
+			     const ::std::deque<double> upper)
 {
 	::std::cerr << "Source: " << src->getName().str() << "\n";
 	::std::cerr << "Found indices:";
@@ -139,24 +142,45 @@ static void apply_assumption(::llvm::Instruction *src, const int_seq &indices, d
 	::llvm::Value *store_orig = builder.CreateStore(load_orig, alloca_gep);
 
 	::llvm::Value *param_val = load_orig;
-	if (param_val->getType()->isArrayTy())
-		param_val = builder.CreateExtractValue(param_val, {0}, "extract_param_val");
+	::llvm::Type *param_type = param_val->getType();
 
-	// Create bound conditions
-	::llvm::Value * upper_cond = builder.CreateFCmpOLT(param_val,
-	  ::llvm::ConstantFP::get(param_val->getType(), upper), "upper_bound");
-	::llvm::Value * lower_cond = builder.CreateFCmpOGE(param_val,
-	  ::llvm::ConstantFP::get(param_val->getType(), lower), "lower_bound");
-
+	// Get assume Intrinsic
 	::llvm::Intrinsic::ID id =
 	  ::llvm::Function::lookupIntrinsicID("llvm.assume");
-
 	::llvm::Function *assume_decl =
 	  ::llvm::Intrinsic::getDeclaration(f->getParent(), id);
 
+	// Create bound conditions
+	if (param_type->isArrayTy()) {
+		const int64_t num_elements = param_type->getArrayNumElements();
+		assert(num_elements == upper.size());
+		assert(num_elements == lower.size());
+		for (unsigned i = 0; i < num_elements; ++i) {
+			::llvm::Value *element_val =
+			    builder.CreateExtractValue(param_val, {i}, "extract_param_val");
 
-	builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {upper_cond});
-	builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {lower_cond});
+			::llvm::Value *upper_cond = builder.CreateFCmpOLT(element_val,
+			    ::llvm::ConstantFP::get(element_val->getType(), upper[i]), "upper_bound");
+			::llvm::Value *lower_cond = builder.CreateFCmpOGE(element_val,
+			    ::llvm::ConstantFP::get(element_val->getType(), lower[i]), "lower_bound");
+
+			builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {upper_cond});
+			builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {lower_cond});
+		}
+	}
+}
+
+static ::std::deque<double> parse_limits(const char *arg)
+{
+	::std::deque<double> limits;
+	std::stringstream ss(arg);
+
+	for (int i; ss >> i;) {
+	        limits.push_back(i);
+		if (ss.peek() == ',')
+			ss.ignore();
+	}
+	return limits;
 }
 
 int main(int argc, char **argv) {
@@ -165,8 +189,8 @@ int main(int argc, char **argv) {
 	while ((c = getopt_long(argc, argv, "sp:l:u:h", options, NULL)) != -1) {
 		switch (c) {
 		case 'p': conf.param = ::std::string(optarg); break;
-		case 'l': conf.lower_bound = ::std::stod(optarg); break;
-		case 'u': conf.upper_bound = ::std::stod(optarg); break;
+		case 'l': conf.lower_bound = parse_limits(optarg); break;
+		case 'u': conf.upper_bound = parse_limits(optarg); break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
 			            << ::std::endl;
@@ -180,6 +204,10 @@ int main(int argc, char **argv) {
 	}
 	if (conf.param.empty()) {
 		::std::cerr << "ERROR: No parameter name provided!\n";
+		return 2;
+	}
+	if (conf.lower_bound.size() != conf.upper_bound.size()) {
+		::std::cerr << "ERROR: Mismatch in number of upper and lower bounds!\n";
 		return 2;
 	}
 
