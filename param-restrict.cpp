@@ -159,13 +159,21 @@ static void apply_assumption(::llvm::Instruction *src, const int_seq &indices,
 			::llvm::Value *element_val =
 			    builder.CreateExtractValue(param_val, {i}, "extract_param_val");
 
-			::llvm::Value *upper_cond = builder.CreateFCmpOLT(element_val,
-			    ::llvm::ConstantFP::get(element_val->getType(), upper[i]), "upper_bound");
-			::llvm::Value *lower_cond = builder.CreateFCmpOGE(element_val,
-			    ::llvm::ConstantFP::get(element_val->getType(), lower[i]), "lower_bound");
+			if (lower[i] == upper[i]) {
+				::llvm::Value *eq_cond = builder.CreateFCmpOEQ(element_val,
+	                            ::llvm::ConstantFP::get(element_val->getType(), upper[i]), "eq_bound");
+				builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {eq_cond});
+			} else {
+				assert(lower[i] < upper[i]);
 
-			builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {upper_cond});
-			builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {lower_cond});
+				::llvm::Value *upper_cond = builder.CreateFCmpOLT(element_val,
+				    ::llvm::ConstantFP::get(element_val->getType(), upper[i]), "upper_bound");
+				::llvm::Value *lower_cond = builder.CreateFCmpOGE(element_val,
+				    ::llvm::ConstantFP::get(element_val->getType(), lower[i]), "lower_bound");
+
+				builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {upper_cond});
+				builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {lower_cond});
+			}
 		}
 	}
 }
