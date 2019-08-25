@@ -32,6 +32,32 @@ struct config {
 
 using int_seq = ::std::deque<::llvm::ConstantInt *>;
 
+static ::llvm::Instruction *argument_to_caller_arg(::llvm::Argument *arg)
+{
+	auto fn = arg->getParent();
+	// Check that we have only one call size
+	assert(fn->hasOneUse());
+
+	::llvm::User *user = *(fn->user_begin());
+	::llvm::CallInst *call_site = ::llvm::cast<::llvm::CallInst>(user);
+
+	// Function to call is one of the arguments
+	switch (call_site->getNumArgOperands()) {
+	case 4: { // Component (Mechanism or Function), params is the first arg
+		::llvm::Value *operand = call_site->getOperand(0);
+		return ::llvm::isa<::llvm::Instruction>(operand) ?
+		  ::llvm::cast<::llvm::Instruction>(operand) :
+		  argument_to_caller_arg(::llvm::cast<::llvm::Argument>(operand));
+	}
+	case 5: { // Wrapper, params is the second arg
+		return
+		  ::llvm::cast<::llvm::Instruction>(call_site->getOperand(1));
+	}
+	default:
+		assert(false);
+	}
+}
+
 static int_seq trace_gep(::llvm::Instruction *inst, ::llvm::AllocaInst* &alloca_i) {
 	if (::llvm::AllocaInst *i = ::llvm::dyn_cast<::llvm::AllocaInst>(inst)) {
 		assert(i->getName() == "const_params_loc");
@@ -41,35 +67,12 @@ static int_seq trace_gep(::llvm::Instruction *inst, ::llvm::AllocaInst* &alloca_
 	::llvm::GetElementPtrInst *i = ::llvm::cast<::llvm::GetElementPtrInst>(inst);
 
 	int_seq indices;
-	::llvm::Value * ptr = i->getPointerOperand();
+	::llvm::Value *ptr = i->getPointerOperand();
 	if (::llvm::Instruction * ptr_i = ::llvm::dyn_cast<::llvm::Instruction>(ptr)) {
 		indices = trace_gep(ptr_i, alloca_i);
 	} else {
-		::llvm::Argument * arg = ::llvm::cast<::llvm::Argument>(ptr);
-		auto fn = arg->getParent();
-		// Check that we have only one call size
-		assert(fn->hasOneUse());
-		::llvm::User * user = *(fn->user_begin());
-
-		::llvm::CallInst * call_site = ::llvm::cast<::llvm::CallInst>(user);
-
-		// Function to call is one of the arguments
-		switch (call_site->getNumArgOperands()) {
-		case 4: { // Component (Mechanism), params is the first arg
-			::llvm::Instruction *p_op =
-			  ::llvm::cast<::llvm::Instruction>(call_site->getOperand(0));
-			indices = trace_gep(p_op, alloca_i);
-			break;
-		}
-		case 5: { // Wrapper, params is the second arg
-			::llvm::Instruction *p_op =
-			  ::llvm::cast<::llvm::Instruction>(call_site->getOperand(1));
-			indices = trace_gep(p_op, alloca_i);
-			break;
-		}
-		default:
-			assert(false);
-		}
+		::llvm::Argument *arg = ::llvm::cast<::llvm::Argument>(ptr);
+		indices = trace_gep(argument_to_caller_arg(arg), alloca_i);
 	}
 	for (auto idx_i = i->idx_begin() + 1; idx_i != i->idx_end(); ++idx_i) {
 		indices.push_back(::llvm::cast<::llvm::ConstantInt>(*idx_i));
