@@ -34,10 +34,21 @@ $LLVM_LINK "$D"/*.parse.ll | $LLVM_OPT -internalize -internalize-public-api-list
 
 VARIANT=$(basename "$D")
 if [ "x$VARIANT" == "xconst-input" ]; then
-	RANGE_PARAM=$(grep -o 'raw_[^"]*' "$MODEL_NAME.ll" | sort -u | grep offset | head -n1)
+	# Select response recurrent projection matrix
+	if [ "x$MODEL_NAME" == "xbotvinick_const-input" ]; then
+		RANGE_PARAM="ptr_param_matrix_LinearMatrix Function-3"
+		UPPER=0,-2,-2,0
+		LOWER=0,-5,-5,0
+	else
+		# The selection of these parameters is arbitrary
+		# TODO: Adjust to fit specific experiments
+		RANGE_PARAM=$(grep -o 'raw_[^"]*' "$MODEL_NAME.ll" | sort -u | grep offset | head -n1)
+		UPPER=1
+		LOWER=0
+	fi
 	echo "Selected param: $RANGE_PARAM"
 	cp $MODEL_NAME.ll $MODEL_NAME.pre-restrict.ll
-	./param-restrict -p "$RANGE_PARAM" -l 0 -u 1 $MODEL_NAME.ll
+	./param-restrict -p "$RANGE_PARAM" -l "$LOWER" -u "$UPPER" $MODEL_NAME.ll
 fi
 
 
