@@ -10,22 +10,15 @@
 
 	::llvm::User *user = *(fn->user_begin());
 	::llvm::CallInst *call_site = ::llvm::cast<::llvm::CallInst>(user);
+	unsigned op_num = arg->getArgNo();
+	::llvm::Value *operand = call_site->getOperand(op_num);
 
-	// Function to call is one of the arguments
-	switch (call_site->getNumArgOperands()) {
-	case 4: { // Component (Mechanism or Function), params is the first arg
-		::llvm::Value *operand = call_site->getOperand(0);
-		return ::llvm::isa<::llvm::Instruction>(operand) ?
-		  ::llvm::cast<::llvm::Instruction>(operand) :
-		  argument_to_caller_arg(::llvm::cast<::llvm::Argument>(operand));
-	}
-	case 5: { // Wrapper, params is the second arg
-		return
-		  ::llvm::cast<::llvm::Instruction>(call_site->getOperand(1));
-	}
-	default:
-		assert(false);
-	}
+	// Return operand instruction
+	if (::llvm::isa<::llvm::Instruction>(operand))
+		return ::llvm::cast<::llvm::Instruction>(operand);
+
+	// Recurse if operand is another argument
+	return argument_to_caller_arg(::llvm::cast<::llvm::Argument>(operand));
 }
 
 int_seq trace_gep(::llvm::Instruction *inst, ::llvm::AllocaInst* &alloca_i) {
