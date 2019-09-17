@@ -33,6 +33,33 @@ struct config {
 	::std::deque<double> upper_bound;
 };
 
+template<typename B, typename C>
+static void insert_assume(B &builder, ::llvm::Value *val, C lower, C upper)
+{
+	// Get assume Intrinsic
+	::llvm::Intrinsic::ID id =
+	  ::llvm::Function::lookupIntrinsicID("llvm.assume");
+	::llvm::Function *assume_decl =
+	  ::llvm::Intrinsic::getDeclaration(
+	    builder.GetInsertBlock()->getParent()->getParent(), id);
+
+	if (lower == upper) {
+		::llvm::Value *eq_cond = builder.CreateFCmpOEQ(val,
+		    ::llvm::ConstantFP::get(val->getType(), upper), "eq_bound");
+		builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {eq_cond});
+	} else {
+		assert(lower < upper);
+
+		::llvm::Value *upper_cond = builder.CreateFCmpOLT(val,
+		    ::llvm::ConstantFP::get(val->getType(), upper), "upper_bound");
+		::llvm::Value *lower_cond = builder.CreateFCmpOGE(val,
+		    ::llvm::ConstantFP::get(val->getType(), lower), "lower_bound");
+
+		builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {upper_cond});
+		builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {lower_cond});
+	}
+}
+
 static void apply_assumption(::llvm::Instruction *src, const int_seq &indices,
 		             const ::std::deque<double> &lower,
 			     const ::std::deque<double> upper)
@@ -72,12 +99,6 @@ static void apply_assumption(::llvm::Instruction *src, const int_seq &indices,
 	::llvm::Value *param_val = load_orig;
 	::llvm::Type *param_type = param_val->getType();
 
-	// Get assume Intrinsic
-	::llvm::Intrinsic::ID id =
-	  ::llvm::Function::lookupIntrinsicID("llvm.assume");
-	::llvm::Function *assume_decl =
-	  ::llvm::Intrinsic::getDeclaration(f->getParent(), id);
-
 	// Create bound conditions
 	if (param_type->isArrayTy()) {
 		const int64_t num_elements = param_type->getArrayNumElements();
@@ -86,22 +107,7 @@ static void apply_assumption(::llvm::Instruction *src, const int_seq &indices,
 		for (unsigned i = 0; i < num_elements; ++i) {
 			::llvm::Value *element_val =
 			    builder.CreateExtractValue(param_val, {i}, "extract_param_val");
-
-			if (lower[i] == upper[i]) {
-				::llvm::Value *eq_cond = builder.CreateFCmpOEQ(element_val,
-	                            ::llvm::ConstantFP::get(element_val->getType(), upper[i]), "eq_bound");
-				builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {eq_cond});
-			} else {
-				assert(lower[i] < upper[i]);
-
-				::llvm::Value *upper_cond = builder.CreateFCmpOLT(element_val,
-				    ::llvm::ConstantFP::get(element_val->getType(), upper[i]), "upper_bound");
-				::llvm::Value *lower_cond = builder.CreateFCmpOGE(element_val,
-				    ::llvm::ConstantFP::get(element_val->getType(), lower[i]), "lower_bound");
-
-				builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {upper_cond});
-				builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {lower_cond});
-			}
+			insert_assume(builder, element_val, lower[i], upper[i]);
 		}
 	}
 }
