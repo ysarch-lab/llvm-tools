@@ -42,7 +42,7 @@ static void set_nsz(::llvm::Function &f)
 static void get_stored_values(::llvm::Value *val, val_list &stored_vals) {
 	if (::llvm::StoreInst *i = ::llvm::dyn_cast<::llvm::StoreInst>(val)) {
 		llvm_cout << "Used in store:" << *i << "\n";
-		stored_vals.push_back(::std::make_pair(i->getValueOperand(), i));
+		stored_vals.push_front(::std::make_pair(i->getValueOperand(), i));
 	}
 	for (auto u:val->users())
 		get_stored_values(u, stored_vals);
