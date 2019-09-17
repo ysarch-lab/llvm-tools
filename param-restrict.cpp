@@ -157,7 +157,6 @@ int main(int argc, char **argv) {
 
 	for (auto &m:modules) {
 		auto res = find_src_and_indices(m.first.get(), conf.param);
-		int_seq &indices = res.second;
 		if (!res.second.empty()) {
 			apply_assumption(res.first, res.second, conf.lower_bound, conf.upper_bound);
 			::std::error_code ec;
