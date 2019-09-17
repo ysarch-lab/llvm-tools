@@ -33,7 +33,18 @@ struct config {
 	::std::deque<double> upper_bound;
 };
 
-template<typename B, typename C>
+template<typename B>
+static ::llvm::Value *build_cmp(B &builder, ::llvm::Value *val, double limit,
+                                ::llvm::CmpInst::Predicate p, const char *n)
+{
+	return builder.CreateFCmp(p, val,
+	    ::llvm::ConstantFP::get(val->getType(), limit), n);
+}
+
+template<::llvm::CmpInst::Predicate EQ,
+         ::llvm::CmpInst::Predicate LT,
+	 ::llvm::CmpInst::Predicate GE,
+	 typename B, typename C>
 static void insert_assume(B &builder, ::llvm::Value *val, C lower, C upper)
 {
 	// Get assume Intrinsic
@@ -44,16 +55,16 @@ static void insert_assume(B &builder, ::llvm::Value *val, C lower, C upper)
 	    builder.GetInsertBlock()->getParent()->getParent(), id);
 
 	if (lower == upper) {
-		::llvm::Value *eq_cond = builder.CreateFCmpOEQ(val,
-		    ::llvm::ConstantFP::get(val->getType(), upper), "eq_bound");
+		::llvm::Value *eq_cond =
+		    build_cmp(builder, val, upper, EQ, "eq_bound");
 		builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {eq_cond});
 	} else {
 		assert(lower < upper);
 
-		::llvm::Value *upper_cond = builder.CreateFCmpOLT(val,
-		    ::llvm::ConstantFP::get(val->getType(), upper), "upper_bound");
-		::llvm::Value *lower_cond = builder.CreateFCmpOGE(val,
-		    ::llvm::ConstantFP::get(val->getType(), lower), "lower_bound");
+		::llvm::Value *upper_cond =
+		    build_cmp(builder, val, upper, LT, "upper_bound");
+		::llvm::Value *lower_cond =
+		    build_cmp(builder, val, lower, GE, "lower_bound");
 
 		builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {upper_cond});
 		builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {lower_cond});
@@ -107,7 +118,7 @@ static void apply_assumption(::llvm::Instruction *src, const int_seq &indices,
 		for (unsigned i = 0; i < num_elements; ++i) {
 			::llvm::Value *element_val =
 			    builder.CreateExtractValue(param_val, {i}, "extract_param_val");
-			insert_assume(builder, element_val, lower[i], upper[i]);
+			insert_assume<::llvm::CmpInst::FCMP_OEQ, ::llvm::CmpInst::FCMP_OLT, ::llvm::CmpInst::FCMP_OGE>(builder, element_val, lower[i], upper[i]);
 		}
 	}
 }
