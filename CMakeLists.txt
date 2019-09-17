@@ -39,7 +39,7 @@ add_executable(op-counter counter.cpp ${SHARED_SRCS})
 add_executable(graph graph.cpp ${SHARED_SRCS})
 add_executable(dag-graph dag-graph.cpp ${SHARED_SRCS})
 add_executable(param-restrict param-restrict.cpp ${CPP_SHARED})
-add_executable(result-range result-range.cpp)
+add_executable(result-range result-range.cpp ${CPP_SHARED})
 
 
 # Work around an LLVM cmake bug that checks DYLIB_COMPONENTS instead of

@@ -1,3 +1,5 @@
+#include "trace_gep.h"
+
 #include <getopt.h>
 
 #include <cassert>
@@ -21,6 +23,7 @@ static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
 	{"arg", required_argument, NULL, 'a'},
 	{"no-signed-zeros", no_argument, NULL, 'z'},
+	{"verbose", no_argument, NULL, 'v'},
 	{"help", no_argument, NULL, 'h'},
 };
 
@@ -67,16 +70,18 @@ struct config {
 	::std::string func = "run_";
 	unsigned arg = 4;
 	bool nsz = false;
+	bool verbose = false;
 };
 
 int main(int argc, char **argv) {
 	char c = -1;
 	config conf;
-	while ((c = getopt_long(argc, argv, "f:a:zh", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "f:a:zvh", options, NULL)) != -1) {
 		switch (c) {
 		case 'f': conf.func = ::std::string(optarg); break;
 		case 'a': conf.arg = ::std::stoi(optarg); break;
 		case 'z': conf.nsz = true; break;
+		case 'v': conf.verbose = true; break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
 			            << ::std::endl;
@@ -85,6 +90,7 @@ int main(int argc, char **argv) {
 			::std::cerr << "\t\t-f,--function <f> Function to examine.\n";
 			::std::cerr << "\t\t-a,--arg <a> Function output argument.\n";
 			::std::cerr << "\t\t-z,--no-signed-zeros FP operations should ignore sign of 0.0.\n";
+			::std::cerr << "\t\t-v,--verbose Print the insturction the produced the stored value\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
@@ -119,9 +125,19 @@ int main(int argc, char **argv) {
 					(::llvm::LazyValueInfoWrapperPass *)p;
 				auto &lvi = wp->getLVI();
 				for (auto v:find_arg_values(f, conf.arg)) {
-					llvm_cout << *v.first
-					          << " is known to be in: "
-					          << lvi.getConstantRange(v.first, v.second->getParent()) << "\n";
+					// Pointer is the second arg for stores
+					::llvm::Value *ptr = v.second->getOperand(1);
+					::llvm::GetElementPtrInst *gep =
+						::llvm::cast<::llvm::GetElementPtrInst>(ptr);
+					::llvm::AllocaInst *i;
+					auto idx_seq = trace_gep(gep, i);
+					for (const auto idx:idx_seq)
+						llvm_cout << idx->getValue() << " ";
+					llvm_cout << "is known to be in: "
+					          << lvi.getConstantRange(v.first, v.second->getParent());
+					if (conf.verbose)
+						llvm_cout << " " << *v.first;
+					llvm_cout << "\n";
 				}
 				wp->releaseMemory();
 			}
