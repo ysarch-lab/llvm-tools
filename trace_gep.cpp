@@ -5,7 +5,9 @@
 ::llvm::Instruction *argument_to_caller_inst(::llvm::Argument *arg)
 {
 	auto fn = arg->getParent();
-	// Check that we have only one call size
+	// Check that we have only at most one call site
+	if (fn->hasNUses(0))
+		return nullptr;
 	assert(fn->hasOneUse());
 
 	::llvm::User *user = *(fn->user_begin());
@@ -22,6 +24,9 @@
 }
 
 int_seq trace_gep(::llvm::Instruction *inst, ::llvm::AllocaInst* &alloca_i) {
+	if (inst == nullptr)
+		return int_seq();
+
 	if (::llvm::AllocaInst *i = ::llvm::dyn_cast<::llvm::AllocaInst>(inst)) {
 		assert(i->getName() == "const_params_loc");
 		alloca_i = i;
@@ -37,8 +42,14 @@ int_seq trace_gep(::llvm::Instruction *inst, ::llvm::AllocaInst* &alloca_i) {
 		::llvm::Argument *arg = ::llvm::cast<::llvm::Argument>(ptr);
 		indices = trace_gep(argument_to_caller_inst(arg), alloca_i);
 	}
-	for (auto idx_i = i->idx_begin() + 1; idx_i != i->idx_end(); ++idx_i) {
-		indices.push_back(::llvm::cast<::llvm::ConstantInt>(*idx_i));
+	auto gep_idx = i->idx_begin();
+	// If we are continuing a sequence then skip the first zero
+	if (!indices.empty()) {
+		assert(::llvm::cast<::llvm::ConstantInt>(*gep_idx)->getValue() == 0);
+		++gep_idx;
+	}
+	for (; gep_idx != i->idx_end(); ++gep_idx) {
+		indices.push_back(::llvm::cast<::llvm::ConstantInt>(*gep_idx));
 	}
 
 	return indices;
