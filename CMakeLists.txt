@@ -33,10 +33,12 @@ set(SHARED_SRCS BasicBlock.cpp
 	        Instruction.cpp
 		Module.cpp)
 
+set(CPP_SHARED trace_gep.cpp)
+
 add_executable(op-counter counter.cpp ${SHARED_SRCS})
 add_executable(graph graph.cpp ${SHARED_SRCS})
 add_executable(dag-graph dag-graph.cpp ${SHARED_SRCS})
-add_executable(param-restrict param-restrict.cpp)
+add_executable(param-restrict param-restrict.cpp ${CPP_SHARED})
 add_executable(result-range result-range.cpp)
 
 
