@@ -22,12 +22,16 @@
 
 static const struct option options[] = {
 	{"param", required_argument, NULL, 'p'},
+	{"arg", required_argument, NULL, 'a'},
+	{"function", required_argument, NULL, 'f'},
 	{"lower-bound", required_argument, NULL, 'l'},
 	{"upper-bound", required_argument, NULL, 'u'},
 	{"help", no_argument, NULL, 'h'},
 };
 
 struct config {
+	int arg = -1;
+	::std::string function;
 	::std::string param;
 	::std::deque<double> lower_bound;
 	::std::deque<double> upper_bound;
@@ -39,6 +43,14 @@ static ::llvm::Value *build_cmp(B &builder, ::llvm::Value *val, double limit,
 {
 	return builder.CreateFCmp(p, val,
 	    ::llvm::ConstantFP::get(val->getType(), limit), n);
+}
+
+template<typename B>
+static ::llvm::Value *build_cmp(B &builder, ::llvm::Value *val, int64_t limit,
+                                ::llvm::CmpInst::Predicate p, const char *n)
+{
+	return builder.CreateICmp(p, val,
+	    ::llvm::ConstantInt::get(val->getType(), limit), n);
 }
 
 template<::llvm::CmpInst::Predicate EQ,
@@ -124,17 +136,38 @@ static void apply_assumption(::llvm::Instruction *src, const int_seq &indices,
 }
 
 static void apply_module_param_assumption(::llvm::Module *m,
-                                          const ::std::string &file,
 				          const config &conf)
 {
 	auto res = find_src_and_indices(m, conf.param);
 	if (!res.second.empty()) {
 		apply_assumption(res.first, res.second, conf.lower_bound, conf.upper_bound);
-		::std::error_code ec;
-		::llvm::raw_fd_ostream os(file, ec, ::llvm::sys::fs::F_Text);
-		m->print(os, nullptr);
-		os.close();
 	}
+}
+
+static void apply_function_arg_assumption(::llvm::Function &f,
+				          const config &conf)
+{
+	if (f.getName() != conf.function)
+		return;
+
+	assert(f.arg_size() > conf.arg);
+	auto &bb = f.getEntryBlock();
+	::llvm::IRBuilder<> builder(&*bb.getFirstInsertionPt());
+	::llvm::Argument *arg = f.arg_begin() + conf.arg;
+	::llvm::Value *val = builder.CreateLoad(arg, "arg_load");
+
+	// Get assume Intrinsic
+	::llvm::Intrinsic::ID id =
+	  ::llvm::Function::lookupIntrinsicID("llvm.assume");
+	::llvm::Function *assume_decl =
+	  ::llvm::Intrinsic::getDeclaration(f.getParent(), id);
+
+	assert(conf.lower_bound.size() == 1);
+	assert(conf.upper_bound.size() == 1);
+	int64_t lower = conf.lower_bound[0];
+	int64_t upper = conf.upper_bound[0];
+
+	insert_assume<::llvm::CmpInst::ICMP_EQ, ::llvm::CmpInst::ICMP_SLT, ::llvm::CmpInst::ICMP_SGE>(builder, val, lower, upper);
 }
 
 static ::std::deque<double> parse_limits(const char *arg)
@@ -151,11 +184,13 @@ static ::std::deque<double> parse_limits(const char *arg)
 }
 
 int main(int argc, char **argv) {
-	char c = -1;
 	config conf;
-	while ((c = getopt_long(argc, argv, "sp:l:u:h", options, NULL)) != -1) {
+	char c = -1;
+	while ((c = getopt_long(argc, argv, "sp:l:u:a:f:h", options, NULL)) != -1) {
 		switch (c) {
 		case 'p': conf.param = ::std::string(optarg); break;
+		case 'a': conf.arg = ::std::stoi(optarg); break;
+		case 'f': conf.function = ::std::string(optarg); break;
 		case 'l': conf.lower_bound = parse_limits(optarg); break;
 		case 'u': conf.upper_bound = parse_limits(optarg); break;
 		default:
@@ -166,11 +201,13 @@ int main(int argc, char **argv) {
 			::std::cerr << "\t-p,--param\t\tParameter name\n";
 			::std::cerr << "\t-l,--lower-bound\t\tParameter lower bound\n";
 			::std::cerr << "\t-u,--upper-bound\t\tParameter upper bound\n";
+			::std::cerr << "\t-a,--arg\t\tArgument number\n";
+			::std::cerr << "\t-f,--function\t\tFunction name\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
-	if (conf.param.empty()) {
-		::std::cerr << "ERROR: No parameter name provided!\n";
+	if (conf.param.empty() && (conf.arg == -1 || conf.function.empty())) {
+		::std::cerr << "ERROR: No parameter name or argument provided!\n";
 		return 2;
 	}
 	if (conf.lower_bound.size() != conf.upper_bound.size()) {
@@ -187,7 +224,14 @@ int main(int argc, char **argv) {
 	}
 
 	for (auto &m:modules) {
-		apply_module_param_assumption(m.first.get(), m.second, conf);
+		for (auto &f:m.first->functions())
+			apply_function_arg_assumption(f, conf);
+		if (!conf.param.empty())
+			apply_module_param_assumption(m.first.get(), conf);
+		::std::error_code ec;
+		::llvm::raw_fd_ostream os(m.second, ec, ::llvm::sys::fs::F_Text);
+		m.first->print(os, nullptr);
+		os.close();
 	}
 
 	return 0;
