@@ -106,6 +106,20 @@ static void apply_assumption(::llvm::Instruction *src, const int_seq &indices,
 	}
 }
 
+static void apply_module_param_assumption(::llvm::Module *m,
+                                          const ::std::string &file,
+				          const config &conf)
+{
+	auto res = find_src_and_indices(m, conf.param);
+	if (!res.second.empty()) {
+		apply_assumption(res.first, res.second, conf.lower_bound, conf.upper_bound);
+		::std::error_code ec;
+		::llvm::raw_fd_ostream os(file, ec, ::llvm::sys::fs::F_Text);
+		m->print(os, nullptr);
+		os.close();
+	}
+}
+
 static ::std::deque<double> parse_limits(const char *arg)
 {
 	::std::deque<double> limits;
@@ -156,14 +170,7 @@ int main(int argc, char **argv) {
 	}
 
 	for (auto &m:modules) {
-		auto res = find_src_and_indices(m.first.get(), conf.param);
-		if (!res.second.empty()) {
-			apply_assumption(res.first, res.second, conf.lower_bound, conf.upper_bound);
-			::std::error_code ec;
-			::llvm::raw_fd_ostream os(m.second, ec, ::llvm::sys::fs::F_Text);
-			m.first->print(os, nullptr);
-			os.close();
-		}
+		apply_module_param_assumption(m.first.get(), m.second, conf);
 	}
 
 	return 0;
