@@ -27,7 +27,7 @@ static const struct option options[] = {
 	{"help", no_argument, NULL, 'h'},
 };
 
-using val_list = ::std::deque<::std::pair<::llvm::Value*, ::llvm::Instruction*>>;
+using val_list = ::std::deque<::llvm::StoreInst*>;
 
 ::llvm::raw_os_ostream llvm_cout(::std::cout);
 
@@ -42,7 +42,7 @@ static void set_nsz(::llvm::Function &f)
 static void get_stored_values(::llvm::Value *val, val_list &stored_vals) {
 	if (::llvm::StoreInst *i = ::llvm::dyn_cast<::llvm::StoreInst>(val)) {
 		llvm_cout << "Used in store:" << *i << "\n";
-		stored_vals.push_front(::std::make_pair(i->getValueOperand(), i));
+		stored_vals.push_front(i);
 	}
 	for (auto u:val->users())
 		get_stored_values(u, stored_vals);
@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
 				auto &lvi = wp->getLVI();
 				for (auto v:find_arg_values(f, conf.arg)) {
 					// Pointer is the second arg for stores
-					::llvm::Value *ptr = v.second->getOperand(1);
+					::llvm::Value *ptr = v->getPointerOperand();
 					::llvm::GetElementPtrInst *gep =
 						::llvm::cast<::llvm::GetElementPtrInst>(ptr);
 					::llvm::AllocaInst *i;
@@ -134,9 +134,9 @@ int main(int argc, char **argv) {
 					for (const auto idx:idx_seq)
 						llvm_cout << idx->getValue() << " ";
 					llvm_cout << "is known to be in: "
-					          << lvi.getConstantRange(v.first, v.second->getParent());
+					          << lvi.getConstantRange(v->getValueOperand(), v->getParent());
 					if (conf.verbose)
-						llvm_cout << " " << *v.first;
+						llvm_cout << " " << *v->getValueOperand();
 					llvm_cout << "\n";
 				}
 				wp->releaseMemory();
