@@ -1,7 +1,7 @@
 cmake_minimum_required( VERSION 3.9.2 )
 
 project( inst-counter LANGUAGES CXX )
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+set( CXX_STANDARD_REQUIRED ON )
 include( GNUInstallDirs )
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
@@ -40,6 +40,7 @@ add_executable(graph graph.cpp ${SHARED_SRCS})
 add_executable(dag-graph dag-graph.cpp ${SHARED_SRCS})
 add_executable(param-restrict param-restrict.cpp ${CPP_SHARED})
 add_executable(result-range result-range.cpp ${CPP_SHARED})
+add_executable(result-symbolic result-symbolic.cpp ${CPP_SHARED})
 
 
 # Work around an LLVM cmake bug that checks DYLIB_COMPONENTS instead of
@@ -51,8 +52,10 @@ else()
 endif()
 
 # Link with LLVM libraries
-foreach(T IN ITEMS dag-graph graph op-counter param-restrict result-range)
+foreach(T IN ITEMS dag-graph graph op-counter param-restrict result-range
+		result-symbolic)
 	llvm_config(${T} ${USE_SHARED} support core irreader analysis passes)
+	set_property(TARGET ${T} PROPERTY CXX_STANDARD 17)
 endforeach()
 
 # Link graph tools with cgraph
