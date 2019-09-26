@@ -73,6 +73,35 @@ struct config {
 	bool verbose = false;
 };
 
+static void analyze_function(::llvm::Function &f, const config &conf)
+{
+	if (conf.nsz)
+		set_nsz(f);
+	::llvm::legacy::FunctionPassManager pm(f.getParent());
+	::llvm::Pass *p = ::llvm::createLazyValueInfoPass();
+	pm.add(p);
+	pm.run(f);
+	::llvm::LazyValueInfoWrapperPass *wp =
+		(::llvm::LazyValueInfoWrapperPass *)p;
+	auto &lvi = wp->getLVI();
+	for (auto v:find_arg_values(f, conf.arg)) {
+		// Pointer is the second arg for stores
+		::llvm::Value *ptr = v->getPointerOperand();
+		::llvm::GetElementPtrInst *gep =
+			::llvm::cast<::llvm::GetElementPtrInst>(ptr);
+		::llvm::AllocaInst *i;
+		auto idx_seq = trace_gep(gep, i);
+		for (const auto idx:idx_seq)
+			llvm_cout << idx->getValue() << " ";
+		llvm_cout << "is known to be in: "
+			  << lvi.getConstantRange(v->getValueOperand(), v->getParent());
+		if (conf.verbose)
+			llvm_cout << " " << *v->getValueOperand();
+		llvm_cout << "\n";
+	}
+	wp->releaseMemory();
+}
+
 int main(int argc, char **argv) {
 	char c = -1;
 	config conf;
@@ -114,33 +143,8 @@ int main(int argc, char **argv) {
 			auto mm = ::std::mismatch(conf.func.begin(),
 			                          conf.func.end(),
 						  f.getName().begin());
-			if (mm.first == conf.func.end()) {
-				if (conf.nsz)
-					set_nsz(f);
-				::llvm::legacy::FunctionPassManager pm(m.get());
-				::llvm::Pass *p = ::llvm::createLazyValueInfoPass();
-				pm.add(p);
-				pm.run(f);
-				::llvm::LazyValueInfoWrapperPass *wp =
-					(::llvm::LazyValueInfoWrapperPass *)p;
-				auto &lvi = wp->getLVI();
-				for (auto v:find_arg_values(f, conf.arg)) {
-					// Pointer is the second arg for stores
-					::llvm::Value *ptr = v->getPointerOperand();
-					::llvm::GetElementPtrInst *gep =
-						::llvm::cast<::llvm::GetElementPtrInst>(ptr);
-					::llvm::AllocaInst *i;
-					auto idx_seq = trace_gep(gep, i);
-					for (const auto idx:idx_seq)
-						llvm_cout << idx->getValue() << " ";
-					llvm_cout << "is known to be in: "
-					          << lvi.getConstantRange(v->getValueOperand(), v->getParent());
-					if (conf.verbose)
-						llvm_cout << " " << *v->getValueOperand();
-					llvm_cout << "\n";
-				}
-				wp->releaseMemory();
-			}
+			if (mm.first == conf.func.end())
+				analyze_function(f, conf);
 		}
 	}
 
