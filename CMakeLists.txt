@@ -1,6 +1,6 @@
 cmake_minimum_required( VERSION 3.9.2 )
 
-project( inst-counter LANGUAGES CXX )
+project( llvm-tools LANGUAGES CXX )
 set( CXX_STANDARD_REQUIRED ON )
 include( GNUInstallDirs )
 if(NOT CMAKE_BUILD_TYPE)
