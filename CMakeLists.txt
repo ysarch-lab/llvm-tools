@@ -27,6 +27,7 @@ add_definitions(${LLVM_DEFINITIONS})
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(CGRAPH REQUIRED libcgraph)
 pkg_check_modules(GVC REQUIRED libgvc)
+pkg_check_modules(GINAC REQUIRED ginac)
 
 set(SHARED_SRCS BasicBlock.cpp
 		Function.cpp
@@ -68,3 +69,7 @@ foreach(T IN ITEMS graph dag-graph)
 	target_include_directories(${T} PRIVATE ${GVC_INCLUDE_DIRS})
 	target_compile_options(${T} PRIVATE ${GVC_CFLAGS_OTHER})
 endforeach()
+
+target_link_libraries(result-symbolic PRIVATE ${GINAC_LIBRARIES})
+target_include_directories(result-symbolic PRIVATE ${GINAC_INCLUDE_DIRS})
+target_compile_options(result-symbolic PRIVATE ${GINAC_CFLAGS_OTHER})

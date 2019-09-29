@@ -9,6 +9,8 @@
 #include <unordered_set>
 #include <unordered_map>
 
+#include <ginac/ginac.h>
+
 #include <llvm/Analysis/Passes.h>
 #include <llvm/Analysis/LazyValueInfo.h>
 #include <llvm/IR/Function.h>
@@ -29,7 +31,7 @@ static const struct option options[] = {
 
 using store_list = ::std::deque<::llvm::StoreInst*>;
 using inst_set = ::std::unordered_set<::llvm::Instruction *>;
-using val_map = ::std::unordered_map<::llvm::Value *, bool>;
+using val_map = ::std::unordered_map<::llvm::Value *, GiNaC::ex>;
 
 ::llvm::raw_os_ostream llvm_cout(::std::cout);
 
@@ -124,8 +126,8 @@ static void analyze_function(::llvm::Function &f, const config &conf)
 		::llvm::AllocaInst *i;
 		auto idx_seq = trace_gep(gep, i);
 		for (const auto idx:idx_seq)
-			llvm_cout << idx->getValue() << " ";
-		llvm_cout << ": " << res.at(v->getValueOperand()) << "\n";
+			::std::cout << idx->getValue().getLimitedValue() << " ";
+		::std::cout << ": " << res.at(v->getValueOperand()) << "\n";
 	}
 }
 

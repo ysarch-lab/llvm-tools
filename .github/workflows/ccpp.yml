@@ -16,7 +16,7 @@ jobs:
     - name: Install dependencies
       env:
         LLVM_VERSION: ${{ matrix.llvm }}
-      run: sudo apt install libgraphviz-dev llvm-$LLVM_VERSION-dev
+      run: sudo apt install libgraphviz-dev libginac-dev llvm-$LLVM_VERSION-dev
     - name: Configure
       run: |
          mkdir _build
