@@ -15,6 +15,7 @@
 #include <llvm/Analysis/LazyValueInfo.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/Intrinsics.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
@@ -31,7 +32,7 @@ static const struct option options[] = {
 
 using store_list = ::std::deque<::llvm::StoreInst*>;
 using inst_set = ::std::unordered_set<::llvm::Instruction *>;
-using val_map = ::std::unordered_map<::llvm::Value *, GiNaC::ex>;
+using val_map = ::std::unordered_map<const ::llvm::Value *, GiNaC::ex>;
 
 ::llvm::raw_os_ostream llvm_cout(::std::cout);
 
@@ -67,7 +68,114 @@ struct config {
 	unsigned arg = 4;
 };
 
-val_map find_symbolic(inst_set &fringe)
+static const char * get_sym(void) {
+	static unsigned char count = 0;
+	static const char *table[] = {"a", "b", "c" , "d", "e", "f", "g", "h"};
+	return table[count++ % (sizeof(table) / sizeof(table[0]))];
+}
+
+static void add_results(const ::llvm::Value *val, val_map &store)
+{
+	if (auto *C = ::llvm::dyn_cast<::llvm::ConstantFP>(val)) {
+		double Value = C->getValueAPF().convertToDouble();
+		store.insert(::std::make_pair(val, Value));
+		return;
+	}
+	if (auto *C = ::llvm::dyn_cast<::llvm::ConstantInt>(val)) {
+		int64_t Value = C->getValue().getLimitedValue();
+		store.insert(::std::make_pair(val, Value));
+		return;
+	}
+
+	const ::llvm::Instruction *I = ::llvm::cast<::llvm::Instruction>(val);
+	switch (I->getOpcode()) {
+	case ::llvm::Instruction::Load: {
+		::GiNaC::symbol s(get_sym());
+		store.insert(::std::make_pair(val, s));
+		break;
+	}
+	case ::llvm::Instruction::FAdd: {
+		::GiNaC::ex expr = store.at(I->getOperand(0)) +
+		                   store.at(I->getOperand(1));
+		store.insert(::std::make_pair(val, expr));
+		break;
+	}
+	case ::llvm::Instruction::FSub: {
+		::GiNaC::ex expr = store.at(I->getOperand(0)) -
+		                   store.at(I->getOperand(1));
+		store.insert(::std::make_pair(val, expr));
+		break;
+	}
+	case ::llvm::Instruction::FMul: {
+		::GiNaC::ex expr = store.at(I->getOperand(0)) *
+		                   store.at(I->getOperand(1));
+		store.insert(::std::make_pair(val, expr));
+		break;
+	}
+	case ::llvm::Instruction::FDiv: {
+		::GiNaC::ex expr = store.at(I->getOperand(0)) /
+		                   store.at(I->getOperand(1));
+		store.insert(::std::make_pair(val, expr));
+		break;
+	}
+	case ::llvm::Instruction::Call: {
+		const ::llvm::CallInst *CI = ::llvm::cast<::llvm::CallInst>(I);
+		switch (CI->getIntrinsicID()) {
+		case ::llvm::Intrinsic::exp: {
+			::GiNaC::ex expr = ::GiNaC::exp(store.at(CI->getArgOperand(0)));
+			store.insert(::std::make_pair(val, expr));
+			break;
+		}
+		default:
+			store.insert(::std::make_pair(val, ::GiNaC::symbol("UNK_CALL")));
+		}
+		break;
+	}
+	case ::llvm::Instruction::FCmp: {
+		::GiNaC::ex expr = ::GiNaC::symbol("X");
+		const ::llvm::FCmpInst *FCI = ::llvm::cast<::llvm::FCmpInst>(I);
+		::GiNaC::ex LHS = store.at(FCI->getOperand(0));
+		::GiNaC::ex RHS = store.at(FCI->getOperand(1));
+		switch (FCI->getPredicate()) {
+		case ::llvm::CmpInst::FCMP_OEQ:
+		case ::llvm::CmpInst::FCMP_UEQ:
+			expr = (LHS == RHS); break;
+		case ::llvm::CmpInst::FCMP_ONE:
+		case ::llvm::CmpInst::FCMP_UNE:
+			expr = (LHS != RHS); break;
+		case ::llvm::CmpInst::FCMP_OLT:
+		case ::llvm::CmpInst::FCMP_ULT:
+			expr = (LHS < RHS); break;
+		case ::llvm::CmpInst::FCMP_OLE:
+		case ::llvm::CmpInst::FCMP_ULE:
+			expr = (LHS <= RHS); break;
+		case ::llvm::CmpInst::FCMP_OGT:
+		case ::llvm::CmpInst::FCMP_UGT:
+			expr = (LHS > RHS); break;
+		case ::llvm::CmpInst::FCMP_OGE:
+		case ::llvm::CmpInst::FCMP_UGE:
+			expr = (LHS >= RHS); break;
+		default:
+			llvm_unreachable("Unexpected FCMP ppredicate");
+		}
+		store.insert(::std::make_pair(val, expr));
+		break;
+	}
+	case ::llvm::Instruction::Select: {
+		const ::llvm::SelectInst *SI = ::llvm::cast<::llvm::SelectInst>(I);
+		::GiNaC::ex CondVal = store.at(SI->getCondition());
+		::GiNaC::ex TrueVal = store.at(SI->getTrueValue());
+		::GiNaC::ex FalseVal = store.at(SI->getFalseValue());
+		::GiNaC::ex res = CondVal * TrueVal + ((1 - CondVal) * FalseVal);
+		store.insert(::std::make_pair(val, res));
+		break;
+	}
+	default:
+		store.insert(::std::make_pair(val, ::GiNaC::symbol("UNKN_I")));
+	}
+}
+
+static val_map find_symbolic(inst_set &fringe)
 {
 	val_map results;
 	inst_set deps;
@@ -85,7 +193,7 @@ val_map find_symbolic(inst_set &fringe)
 					continue;
 				// Constants are trivially computed
 				if (::llvm::isa<::llvm::Constant>(op_val)) {
-					results.insert(::std::make_pair(op_val, true));
+					add_results(op_val, results);
 					continue;
 				}
 
@@ -99,7 +207,7 @@ val_map find_symbolic(inst_set &fringe)
 				fringe.insert(i);
 			}
 			if (all_ready)
-				results.insert(::std::make_pair(val, true));
+				add_results(val, results);
 			else
 				deps.insert(val);
 		}
