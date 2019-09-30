@@ -139,22 +139,33 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 		switch (FCI->getPredicate()) {
 		case ::llvm::CmpInst::FCMP_OEQ:
 		case ::llvm::CmpInst::FCMP_UEQ:
-			expr = (LHS == RHS); break;
+			// step(x) * step(-x): x != 0 -> 0; x == 0 -> 1/4
+			expr = ::GiNaC::step(LHS - RHS) * ::GiNaC::step(RHS - LHS) * 4;
+			break;
 		case ::llvm::CmpInst::FCMP_ONE:
 		case ::llvm::CmpInst::FCMP_UNE:
-			expr = (LHS != RHS); break;
+			// (step(x) - 0.5) * (step(-x) - 0.5): x == 0 -> 0; x != 0 -> -1/4
+			expr = (::GiNaC::step(LHS - RHS) - 0.5) *
+			       (::GiNaC::step(RHS - LHS) - 0.5) * -4;
+			break;
 		case ::llvm::CmpInst::FCMP_OLT:
 		case ::llvm::CmpInst::FCMP_ULT:
-			expr = (LHS < RHS); break;
+			// step(step(x - 0.75)): x <= 0 -> 0; x > 0 -> 1
+			expr = ::GiNaC::step(::GiNaC::step(RHS - LHS) - 0.75);
+			break;
 		case ::llvm::CmpInst::FCMP_OLE:
 		case ::llvm::CmpInst::FCMP_ULE:
-			expr = (LHS <= RHS); break;
+			// step(step(x - 0.25)): x < 0 -> 0; x => 0 -> 1
+			expr = ::GiNaC::step(::GiNaC::step(RHS - LHS) - 0.25); break;
 		case ::llvm::CmpInst::FCMP_OGT:
 		case ::llvm::CmpInst::FCMP_UGT:
-			expr = (LHS > RHS); break;
+			// step(step(x - 0.75)): x <= 0 -> 0; x > 0 -> 1
+			expr = ::GiNaC::step(::GiNaC::step(LHS - RHS) - 0.75);
+			break;
 		case ::llvm::CmpInst::FCMP_OGE:
 		case ::llvm::CmpInst::FCMP_UGE:
-			expr = (LHS >= RHS); break;
+			// step(step(x)): x < 0 -> 0; x => 0 -> 1
+			expr = ::GiNaC::step(::GiNaC::step(LHS - RHS)); break;
 		default:
 			llvm_unreachable("Unexpected FCMP ppredicate");
 		}
