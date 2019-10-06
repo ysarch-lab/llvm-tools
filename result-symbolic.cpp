@@ -120,7 +120,7 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 	}
 	case ::llvm::Instruction::Call: {
 		const ::llvm::CallInst *CI = ::llvm::cast<::llvm::CallInst>(I);
-		switch (CI->getIntrinsicID()) {
+		switch (CI->getCalledFunction()->getIntrinsicID()) {
 		case ::llvm::Intrinsic::exp: {
 			::GiNaC::ex expr = ::GiNaC::exp(store.at(CI->getArgOperand(0)));
 			store.insert(::std::make_pair(val, expr));
