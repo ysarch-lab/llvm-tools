@@ -149,6 +149,7 @@ static void apply_function_arg_assumption(::llvm::Function &f,
 {
 	if (f.getName() != conf.function)
 		return;
+	::std::cerr << "Applying to function: " << conf.function << "\n";
 
 	assert(f.arg_size() > conf.arg);
 	auto &bb = f.getEntryBlock();
