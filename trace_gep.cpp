@@ -70,7 +70,7 @@ find_src_and_indices(::llvm::Module *m, const ::std::string &name)
 						// The first operand is pointer
 						i = ::llvm::cast<::llvm::Instruction>(ii->getOperand(0));
 					assert(::llvm::isa<::llvm::GetElementPtrInst>(i));
-					::llvm::AllocaInst *alloca_i;
+					::llvm::AllocaInst *alloca_i = nullptr;
 					auto seq = trace_gep(i, alloca_i);
 					return ::std::make_pair(alloca_i, seq);
 				}
