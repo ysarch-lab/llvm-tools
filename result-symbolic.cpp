@@ -394,7 +394,7 @@ static ::std::vector<double> run_sampling(const config &conf, const prob &f,
 {
 	// TODO: Is there an easier way to get these?
 	SymVisitor symbols;
-	f.expression.accept(symbols);
+	f.expression.traverse(symbols);
 
 	unsigned buckets = (conf.eval_stop - conf.eval_start) / conf.eval_step;
 	::std::vector<double> results(buckets);
