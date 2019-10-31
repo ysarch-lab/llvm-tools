@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <deque>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <unordered_set>
@@ -26,6 +27,11 @@ static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
 	{"arg", required_argument, NULL, 'a'},
 	{"probability", no_argument, NULL, 'p'},
+	{"run-evaluation", no_argument, NULL, 'r'},
+	{"evalution-start", required_argument, NULL, 's'},
+	{"evalution-stop", required_argument, NULL, 't'},
+	{"evalution-step", required_argument, NULL, 'e'},
+	{"evalution-output", required_argument, NULL, 'o'},
 	{"help", no_argument, NULL, 'h'},
 };
 
@@ -73,6 +79,11 @@ struct config {
 	::std::string func = "run_";
 	unsigned arg = 4;
 	bool prob = false;
+	bool run_eval = false;
+	double eval_start = -10.0;
+	double eval_stop = 10.0;
+	double eval_step = 0.1;
+	::std::string eval_out = "eval_out.gp";
 };
 
 static const char * get_sym(void) {
@@ -265,6 +276,8 @@ static val_map find_symbolic(inst_set &fringe, void(*f)(const ::llvm::Value *val
 	return results;
 }
 
+static void run_eval(const config &conf, const prob &p, const ::llvm::StoreInst *s);
+
 static void analyze_function(::llvm::Function &f, const config &conf)
 {
 	auto store_vals = find_arg_values(f, conf.arg);
@@ -292,17 +305,24 @@ static void analyze_function(::llvm::Function &f, const config &conf)
 		if (conf.prob)
 			::std::cout << " VAR: " << res_val.variable;
 		::std::cout << "\n";
+		if (conf.run_eval)
+			run_eval(conf, res_val, v);
 	}
 }
 
 int main(int argc, char **argv) {
 	char c = -1;
 	config conf;
-	while ((c = getopt_long(argc, argv, "f:a:ph", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "f:a:prs:t:e:o:h", options, NULL)) != -1) {
 		switch (c) {
 		case 'f': conf.func = ::std::string(optarg); break;
 		case 'a': conf.arg = ::std::stoi(optarg); break;
 		case 'p': conf.prob = true; break;
+		case 'r': conf.run_eval = true; break;
+		case 's': conf.eval_start = ::std::stod(optarg); break;
+		case 't': conf.eval_stop = ::std::stod(optarg); break;
+		case 'e': conf.eval_step = ::std::stod(optarg); break;
+		case 'o': conf.eval_out = optarg; break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
 			            << ::std::endl;
@@ -311,6 +331,11 @@ int main(int argc, char **argv) {
 			::std::cerr << "\t\t-f,--function <f> Function to examine.\n";
 			::std::cerr << "\t\t-a,--arg <a> Function output argument.\n";
 			::std::cerr << "\t\t-p,--probability Use probability distributions instead of symbolic variables\n";
+			::std::cerr << "\t\t-e,--run-evaluation Evaluate inferred PDF\n";
+			::std::cerr << "\t\t-s,--evaluation-start X axis minimum (default: -10.0)\n";
+			::std::cerr << "\t\t-t,--evaluation-stop X axis maximum (default: 10.0)\n";
+			::std::cerr << "\t\t-e,--evaluation-step X axis step 9default: 0.1)\n";
+			::std::cerr << "\t\t-o,--evaluation-output-file filename to output gnuplot script (default: 'eval_out.gp')\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
@@ -340,4 +365,24 @@ int main(int argc, char **argv) {
 	}
 
 	return 0;
+}
+
+static void run_eval(const config &conf, const prob &p, const ::llvm::StoreInst *s)
+{
+	assert(conf.eval_stop > conf.eval_start);
+	assert(conf.eval_step > 0);
+	assert(s);
+
+	::std::ofstream f(conf.eval_out, ::std::ios_base::out | ::std::ios_base::trunc);
+	f << "$data << EOD\n";
+	unsigned iters = (conf.eval_stop - conf.eval_start) / conf.eval_step;
+	for (unsigned i = 0; i < iters; ++i) {
+		double val = conf.eval_start + (conf.eval_step * i);
+		auto res = ::GiNaC::evalf(p.expression.subs(p.variable == val));
+		f << val << "\t" << res << "\n";
+	}
+	f << "EOD\n\n";
+	f << "plot \"$data\" with lines title \""
+	  << s->getValueOperand()->getName().str() << "\"\n";
+	f.close();
 }
