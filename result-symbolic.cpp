@@ -7,6 +7,7 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <random>
 #include <string>
 #include <unordered_set>
 #include <unordered_map>
@@ -33,6 +34,7 @@ static const struct option options[] = {
 	{"evalution-stop", required_argument, NULL, 't'},
 	{"evalution-step", required_argument, NULL, 'e'},
 	{"evalution-output", required_argument, NULL, 'o'},
+	{"sample-counts", required_argument, NULL, 'c'},
 	{"help", no_argument, NULL, 'h'},
 };
 
@@ -85,6 +87,7 @@ struct config {
 	double eval_stop = 10.0;
 	double eval_step = 0.1;
 	::std::string eval_out = "eval_out.gp";
+	unsigned sim_count = 1000000;
 };
 
 static const char * get_sym(void) {
@@ -237,7 +240,7 @@ static void add_prob_results(const ::llvm::Value *val, val_map &store)
 	}
 }
 
-static val_map find_symbolic(inst_set &fringe, void(*f)(const ::llvm::Value *val, val_map &store))
+static val_map find_symbolic(inst_set fringe, void(*f)(const ::llvm::Value *val, val_map &store))
 {
 	val_map results;
 	inst_set deps;
@@ -277,7 +280,8 @@ static val_map find_symbolic(inst_set &fringe, void(*f)(const ::llvm::Value *val
 	return results;
 }
 
-static void run_eval(const config &conf, const prob &p, const ::llvm::StoreInst *s);
+static void run_eval(const config &conf, const prob &p, const prob &f,
+                     const ::llvm::StoreInst *s);
 
 static void analyze_function(::llvm::Function &f, const config &conf)
 {
@@ -289,8 +293,8 @@ static void analyze_function(::llvm::Function &f, const config &conf)
 			fringe.insert(i);
 	}
 
-	auto proc_f = conf.prob ? add_prob_results : add_results;
-	auto res = find_symbolic(fringe, proc_f);
+	auto res = find_symbolic(fringe, add_results);
+	auto prob_res = find_symbolic(fringe, add_prob_results);
 	for (auto v:store_vals) {
 		// Pointer is the second arg for stores
 		::llvm::Value *ptr = v->getPointerOperand();
@@ -301,20 +305,23 @@ static void analyze_function(::llvm::Function &f, const config &conf)
 		for (const auto idx:idx_seq)
 			::std::cout << idx->getValue().getLimitedValue() << " ";
 		auto res_val = res.at(v->getValueOperand());
-		::std::cout << v->getValueOperand()->getName().str() << ": "
-		            << res_val.expression;
+		auto prob_res_val = prob_res.at(v->getValueOperand());
+		::std::cout << v->getValueOperand()->getName().str() << ": ";
 		if (conf.prob)
-			::std::cout << " VAR: " << res_val.variable;
+		        ::std::cout << prob_res_val.expression
+			            << " VAR: " << prob_res_val.variable;
+		else
+		        ::std::cout << res_val.expression;
 		::std::cout << "\n";
 		if (conf.run_eval)
-			run_eval(conf, res_val, v);
+			run_eval(conf, prob_res_val, res_val, v);
 	}
 }
 
 int main(int argc, char **argv) {
 	char c = -1;
 	config conf;
-	while ((c = getopt_long(argc, argv, "f:a:prs:t:e:o:h", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "f:a:prs:t:e:o:c:h", options, NULL)) != -1) {
 		switch (c) {
 		case 'f': conf.func = ::std::string(optarg); break;
 		case 'a': conf.arg = ::std::stoi(optarg); break;
@@ -324,6 +331,7 @@ int main(int argc, char **argv) {
 		case 't': conf.eval_stop = ::std::stod(optarg); break;
 		case 'e': conf.eval_step = ::std::stod(optarg); break;
 		case 'o': conf.eval_out = optarg; break;
+		case 'c': conf.sim_count = ::std::stoi(optarg); break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
 			            << ::std::endl;
@@ -337,6 +345,7 @@ int main(int argc, char **argv) {
 			::std::cerr << "\t\t-t,--evaluation-stop X axis maximum (default: 10.0)\n";
 			::std::cerr << "\t\t-e,--evaluation-step X axis step 9default: 0.1)\n";
 			::std::cerr << "\t\t-o,--evaluation-output-file filename to output gnuplot script (default: 'eval_out.gp')\n";
+			::std::cerr << "\t\t-o,--sample-count Number of samples to use for evaluation (Default: 1000000)\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
@@ -368,7 +377,51 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
-static void run_eval(const config &conf, const prob &p, const ::llvm::StoreInst *s)
+class SymVisitor :
+	public ::GiNaC::visitor,
+	public ::GiNaC::symbol::visitor {
+
+	void visit(const ::GiNaC::symbol &s)
+	{ symbols.push_back(&s); }
+public:
+	::std::deque<const ::GiNaC::symbol*> symbols;
+
+};
+
+static ::std::vector<double> run_sampling(const config &conf, const prob &f,
+                                          const ::llvm::StoreInst *s)
+{
+	// TODO: Is there an easier way to get these?
+	SymVisitor symbols;
+	f.expression.accept(symbols);
+
+	unsigned buckets = (conf.eval_stop - conf.eval_start) / conf.eval_step;
+	::std::vector<double> results(buckets);
+	::std::default_random_engine generator;
+	::std::normal_distribution<double> distribution(0.0, 1.0);
+	auto start = ::std::chrono::high_resolution_clock::now();
+	for (unsigned i = 0; i < conf.sim_count; ++i) {
+		::GiNaC::lst l;
+		for (const auto &s: symbols.symbols) {
+			double val = distribution(generator);
+			l.append(*s == val);
+		}
+		auto res = ::GiNaC::evalf(f.expression.subs(l));
+		double res_d = ::GiNaC::ex_to<::GiNaC::numeric>(res).to_double();
+		if (res_d >= conf.eval_start && res_d < conf.eval_stop) {
+			unsigned bucket = (res_d - conf.eval_start) / conf.eval_step;
+			results[bucket] += 1.0;
+		}
+	}
+	auto end = ::std::chrono::high_resolution_clock::now();
+	auto dur = ::std::chrono::duration_cast<::std::chrono::microseconds>(end - start);
+	::std::cout << "Sampling evaluation took: " << dur.count() << " us\n";
+
+	return results;
+}
+
+static void run_eval(const config &conf, const prob &p, const prob &orig,
+                     const ::llvm::StoreInst *s)
 {
 	assert(conf.eval_stop > conf.eval_start);
 	assert(conf.eval_step > 0);
@@ -387,17 +440,26 @@ static void run_eval(const config &conf, const prob &p, const ::llvm::StoreInst 
 	auto end = ::std::chrono::high_resolution_clock::now();
 	auto dur = ::std::chrono::duration_cast<::std::chrono::microseconds>(end - start);
 	::std::cout << "PDF Function evaluation took: " << dur.count() << " us\n";
+	const auto sampled_data = run_sampling(conf, orig, s);
 
 	// Store data in a gnuplot script
 	::std::ofstream f(conf.eval_out, ::std::ios_base::out | ::std::ios_base::trunc);
-	f << "# Time to generate data: " << dur.count() << " usecs\n";
+	f << "$sampled_data << EOD\n";
+	assert(sampled_data.size() == iters);
+	for (unsigned i = 0; i < iters; ++i)
+		f << conf.eval_start + i * conf.eval_step << "\t"
+		  << sampled_data[i] << "\n";
+	f << "EOD\n\n";
+	f << "# Time to generate PDF data: " << dur.count() << " usecs\n";
 	f << "$data << EOD\n";
 	for (const auto &d: data)
 		f << d.first << "\t" << d.second << "\n";
 	f << "EOD\n\n";
-	f << "set title \"" << s->getFunction()->getFunction().getName().str() << "\" noenhanced\n";
+	f << "set title \"" << s->getFunction()->getFunction().getName().str()
+	  << " (" << conf.sim_count << " samples)\" noenhanced\n";
 	f << "plot \"$data\" with lines title \""
-	  << s->getValueOperand()->getName().str() << "\"\n";
+	  << s->getValueOperand()->getName().str() << "\", \\\n";
+	f << "\t\"$sampled_data\" axes x1y2 with boxes title \"sampled_"
+	  << s->getValueOperand()->getName().str() << "\" noenhanced\n";
 	f.close();
-	// TODO: Run simulations
 }
