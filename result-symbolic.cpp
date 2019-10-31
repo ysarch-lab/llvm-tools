@@ -236,6 +236,25 @@ static void add_prob_results(const ::llvm::Value *val, val_map &store)
 		store.insert({val, get_normal_dist(0, 1)});
 		break;
 	}
+	case ::llvm::Instruction::FAdd: {
+		auto LHS = store.at(I->getOperand(0));
+		auto RHS = store.at(I->getOperand(1));
+		assert(LHS.variables.nops() == 1);
+		assert(RHS.variables.nops() == 1);
+		::GiNaC::symbol new_var(I->getName().str());
+		if (::GiNaC::is_a<::GiNaC::numeric>(LHS.expression)) {
+			double LHSVal = ::GiNaC::ex_to<::GiNaC::numeric>(LHS.expression).to_double();
+			::GiNaC::ex expr = RHS.expression.subs(RHS.variables[0] == (new_var - LHSVal));
+			store.insert({val, {expr, new_var}});
+			break;
+		}
+		if (::GiNaC::is_a<::GiNaC::numeric>(RHS.expression)) {
+			double RHSVal = ::GiNaC::ex_to<::GiNaC::numeric>(RHS.expression).to_double();
+			::GiNaC::ex expr = LHS.expression.subs(LHS.variables[0] == (new_var - RHSVal));
+			store.insert({val, {expr, new_var}});
+			break;
+		}
+	}
 	default:
 		llvm_unreachable("Unsupported instruction");
 	}
