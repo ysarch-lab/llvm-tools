@@ -3,6 +3,7 @@
 #include <getopt.h>
 
 #include <cassert>
+#include <chrono>
 #include <deque>
 #include <fstream>
 #include <iostream>
@@ -373,16 +374,29 @@ static void run_eval(const config &conf, const prob &p, const ::llvm::StoreInst 
 	assert(conf.eval_step > 0);
 	assert(s);
 
-	::std::ofstream f(conf.eval_out, ::std::ios_base::out | ::std::ios_base::trunc);
-	f << "$data << EOD\n";
 	unsigned iters = (conf.eval_stop - conf.eval_start) / conf.eval_step;
+	::std::vector<::std::pair<double, double> > data;
+	data.reserve(iters);
+	auto start = ::std::chrono::high_resolution_clock::now();
 	for (unsigned i = 0; i < iters; ++i) {
 		double val = conf.eval_start + (conf.eval_step * i);
 		auto res = ::GiNaC::evalf(p.expression.subs(p.variable == val));
-		f << val << "\t" << res << "\n";
+		double res_d = ::GiNaC::ex_to<::GiNaC::numeric>(res).to_double();
+		data.emplace_back(val, res_d);
 	}
+	auto end = ::std::chrono::high_resolution_clock::now();
+	auto dur = ::std::chrono::duration_cast<::std::chrono::microseconds>(end - start);
+	::std::cout << "PDF Function evaluation took: " << dur.count() << " us\n";
+
+	// Store data in a gnuplot script
+	::std::ofstream f(conf.eval_out, ::std::ios_base::out | ::std::ios_base::trunc);
+	f << "# Time to generate data: " << dur.count() << " usecs\n";
+	f << "$data << EOD\n";
+	for (const auto &d: data)
+		f << d.first << "\t" << d.second << "\n";
 	f << "EOD\n\n";
 	f << "plot \"$data\" with lines title \""
 	  << s->getValueOperand()->getName().str() << "\"\n";
 	f.close();
+	// TODO: Run simulations
 }
