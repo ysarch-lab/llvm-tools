@@ -78,12 +78,12 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 {
 	if (auto *C = ::llvm::dyn_cast<::llvm::ConstantFP>(val)) {
 		double Value = C->getValueAPF().convertToDouble();
-		store.insert(::std::make_pair(val, Value));
+		store.insert({val, Value});
 		return;
 	}
 	if (auto *C = ::llvm::dyn_cast<::llvm::ConstantInt>(val)) {
 		int64_t Value = C->getValue().getLimitedValue();
-		store.insert(::std::make_pair(val, Value));
+		store.insert({val, Value});
 		return;
 	}
 
@@ -91,31 +91,31 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 	switch (I->getOpcode()) {
 	case ::llvm::Instruction::Load: {
 		::GiNaC::symbol s(get_sym());
-		store.insert(::std::make_pair(val, s));
+		store.insert({val, s});
 		break;
 	}
 	case ::llvm::Instruction::FAdd: {
 		::GiNaC::ex expr = store.at(I->getOperand(0)) +
 		                   store.at(I->getOperand(1));
-		store.insert(::std::make_pair(val, expr));
+		store.insert({val, expr});
 		break;
 	}
 	case ::llvm::Instruction::FSub: {
 		::GiNaC::ex expr = store.at(I->getOperand(0)) -
 		                   store.at(I->getOperand(1));
-		store.insert(::std::make_pair(val, expr));
+		store.insert({val, expr});
 		break;
 	}
 	case ::llvm::Instruction::FMul: {
 		::GiNaC::ex expr = store.at(I->getOperand(0)) *
 		                   store.at(I->getOperand(1));
-		store.insert(::std::make_pair(val, expr));
+		store.insert({val, expr});
 		break;
 	}
 	case ::llvm::Instruction::FDiv: {
 		::GiNaC::ex expr = store.at(I->getOperand(0)) /
 		                   store.at(I->getOperand(1));
-		store.insert(::std::make_pair(val, expr));
+		store.insert({val, expr});
 		break;
 	}
 	case ::llvm::Instruction::Call: {
@@ -123,11 +123,11 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 		switch (CI->getCalledFunction()->getIntrinsicID()) {
 		case ::llvm::Intrinsic::exp: {
 			::GiNaC::ex expr = ::GiNaC::exp(store.at(CI->getArgOperand(0)));
-			store.insert(::std::make_pair(val, expr));
+			store.insert({val, expr});
 			break;
 		}
 		default:
-			store.insert(::std::make_pair(val, ::GiNaC::symbol("UNK_CALL")));
+			store.insert({val, ::GiNaC::symbol("UNK_CALL")});
 		}
 		break;
 	}
@@ -169,7 +169,7 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 		default:
 			llvm_unreachable("Unexpected FCMP ppredicate");
 		}
-		store.insert(::std::make_pair(val, expr));
+		store.insert({val, expr});
 		break;
 	}
 	case ::llvm::Instruction::Select: {
@@ -178,11 +178,11 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 		::GiNaC::ex TrueVal = store.at(SI->getTrueValue());
 		::GiNaC::ex FalseVal = store.at(SI->getFalseValue());
 		::GiNaC::ex res = CondVal * TrueVal + ((1 - CondVal) * FalseVal);
-		store.insert(::std::make_pair(val, res));
+		store.insert({val, res});
 		break;
 	}
 	default:
-		store.insert(::std::make_pair(val, ::GiNaC::symbol("UNKN_I")));
+		store.insert({val, ::GiNaC::symbol("UNKN_I")});
 	}
 }
 
