@@ -42,10 +42,11 @@ using store_list = ::std::deque<::llvm::StoreInst*>;
 using inst_set = ::std::unordered_set<::llvm::Instruction *>;
 struct prob {
 	GiNaC::ex expression;
-	GiNaC::ex variable;
+	GiNaC::lst variables;
 	// Use only the expression field if only one ginac expression is needed
-	prob(const GiNaC::ex &e): expression(e) {}
-	prob(const GiNaC::ex &e, const GiNaC::ex &v): expression(e), variable(v) {};
+	prob(const GiNaC::ex &e): expression(e), variables() {}
+	prob(const GiNaC::ex &e, const GiNaC::ex &v): expression(e), variables({v}) {};
+	prob(const GiNaC::ex &e, const GiNaC::lst &l): expression(e), variables(l) {};
 };
 using val_map = ::std::unordered_map<const ::llvm::Value *, prob>;
 
@@ -113,7 +114,7 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 	switch (I->getOpcode()) {
 	case ::llvm::Instruction::Load: {
 		::GiNaC::symbol s(get_sym());
-		store.insert({val, {s}});
+		store.insert({val, {s, s}});
 		break;
 	}
 	case ::llvm::Instruction::FAdd: {
@@ -309,7 +310,7 @@ static void analyze_function(::llvm::Function &f, const config &conf)
 		::std::cout << v->getValueOperand()->getName().str() << ": ";
 		if (conf.prob)
 		        ::std::cout << prob_res_val.expression
-			            << " VAR: " << prob_res_val.variable;
+			            << " VAR: " << prob_res_val.variables;
 		else
 		        ::std::cout << res_val.expression;
 		::std::cout << "\n";
@@ -433,7 +434,7 @@ static void run_eval(const config &conf, const prob &p, const prob &orig,
 	auto start = ::std::chrono::high_resolution_clock::now();
 	for (unsigned i = 0; i < iters; ++i) {
 		double val = conf.eval_start + (conf.eval_step * i);
-		auto res = ::GiNaC::evalf(p.expression.subs(p.variable == val));
+		auto res = ::GiNaC::evalf(p.expression.subs(p.variables[0] == val));
 		double res_d = ::GiNaC::ex_to<::GiNaC::numeric>(res).to_double();
 		data.emplace_back(val, res_d);
 	}
