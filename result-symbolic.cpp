@@ -70,7 +70,7 @@ struct config {
 
 static const char * get_sym(void) {
 	static unsigned char count = 0;
-	static const char *table[] = {"a", "b", "c" , "d", "e", "f", "g", "h"};
+	static const char *table[] = {"a", "b", "c" , "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u" ,"v", "w", "x", "y", "z"};
 	return table[count++ % (sizeof(table) / sizeof(table[0]))];
 }
 
