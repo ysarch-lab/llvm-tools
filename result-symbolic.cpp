@@ -32,7 +32,14 @@ static const struct option options[] = {
 
 using store_list = ::std::deque<::llvm::StoreInst*>;
 using inst_set = ::std::unordered_set<::llvm::Instruction *>;
-using val_map = ::std::unordered_map<const ::llvm::Value *, GiNaC::ex>;
+struct prob {
+	GiNaC::ex expression;
+	GiNaC::ex variable;
+	// Use only the expression field if only one ginac expression is needed
+	prob(const GiNaC::ex &e): expression(e) {}
+	prob(const GiNaC::ex &e, const GiNaC::ex &v): expression(e), variable(v) {};
+};
+using val_map = ::std::unordered_map<const ::llvm::Value *, prob>;
 
 ::llvm::raw_os_ostream llvm_cout(::std::cout);
 
@@ -78,12 +85,12 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 {
 	if (auto *C = ::llvm::dyn_cast<::llvm::ConstantFP>(val)) {
 		double Value = C->getValueAPF().convertToDouble();
-		store.insert({val, Value});
+		store.insert({val, {Value}});
 		return;
 	}
 	if (auto *C = ::llvm::dyn_cast<::llvm::ConstantInt>(val)) {
 		int64_t Value = C->getValue().getLimitedValue();
-		store.insert({val, Value});
+		store.insert({val, {Value}});
 		return;
 	}
 
@@ -91,30 +98,30 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 	switch (I->getOpcode()) {
 	case ::llvm::Instruction::Load: {
 		::GiNaC::symbol s(get_sym());
-		store.insert({val, s});
+		store.insert({val, {s}});
 		break;
 	}
 	case ::llvm::Instruction::FAdd: {
-		::GiNaC::ex expr = store.at(I->getOperand(0)) +
-		                   store.at(I->getOperand(1));
+		::GiNaC::ex expr = store.at(I->getOperand(0)).expression +
+		                   store.at(I->getOperand(1)).expression;
 		store.insert({val, expr});
 		break;
 	}
 	case ::llvm::Instruction::FSub: {
-		::GiNaC::ex expr = store.at(I->getOperand(0)) -
-		                   store.at(I->getOperand(1));
+		::GiNaC::ex expr = store.at(I->getOperand(0)).expression -
+		                   store.at(I->getOperand(1)).expression;
 		store.insert({val, expr});
 		break;
 	}
 	case ::llvm::Instruction::FMul: {
-		::GiNaC::ex expr = store.at(I->getOperand(0)) *
-		                   store.at(I->getOperand(1));
+		::GiNaC::ex expr = store.at(I->getOperand(0)).expression *
+		                   store.at(I->getOperand(1)).expression;
 		store.insert({val, expr});
 		break;
 	}
 	case ::llvm::Instruction::FDiv: {
-		::GiNaC::ex expr = store.at(I->getOperand(0)) /
-		                   store.at(I->getOperand(1));
+		::GiNaC::ex expr = store.at(I->getOperand(0)).expression /
+		                   store.at(I->getOperand(1)).expression;
 		store.insert({val, expr});
 		break;
 	}
@@ -122,7 +129,7 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 		const ::llvm::CallInst *CI = ::llvm::cast<::llvm::CallInst>(I);
 		switch (CI->getCalledFunction()->getIntrinsicID()) {
 		case ::llvm::Intrinsic::exp: {
-			::GiNaC::ex expr = ::GiNaC::exp(store.at(CI->getArgOperand(0)));
+			::GiNaC::ex expr = ::GiNaC::exp(store.at(CI->getArgOperand(0)).expression);
 			store.insert({val, expr});
 			break;
 		}
@@ -134,8 +141,8 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 	case ::llvm::Instruction::FCmp: {
 		::GiNaC::ex expr = ::GiNaC::symbol("X");
 		const ::llvm::FCmpInst *FCI = ::llvm::cast<::llvm::FCmpInst>(I);
-		::GiNaC::ex LHS = store.at(FCI->getOperand(0));
-		::GiNaC::ex RHS = store.at(FCI->getOperand(1));
+		::GiNaC::ex LHS = store.at(FCI->getOperand(0)).expression;
+		::GiNaC::ex RHS = store.at(FCI->getOperand(1)).expression;
 		switch (FCI->getPredicate()) {
 		case ::llvm::CmpInst::FCMP_OEQ:
 		case ::llvm::CmpInst::FCMP_UEQ:
@@ -174,9 +181,9 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 	}
 	case ::llvm::Instruction::Select: {
 		const ::llvm::SelectInst *SI = ::llvm::cast<::llvm::SelectInst>(I);
-		::GiNaC::ex CondVal = store.at(SI->getCondition());
-		::GiNaC::ex TrueVal = store.at(SI->getTrueValue());
-		::GiNaC::ex FalseVal = store.at(SI->getFalseValue());
+		::GiNaC::ex CondVal = store.at(SI->getCondition()).expression;
+		::GiNaC::ex TrueVal = store.at(SI->getTrueValue()).expression;
+		::GiNaC::ex FalseVal = store.at(SI->getFalseValue()).expression;
 		::GiNaC::ex res = CondVal * TrueVal + ((1 - CondVal) * FalseVal);
 		store.insert({val, res});
 		break;
@@ -246,7 +253,7 @@ static void analyze_function(::llvm::Function &f, const config &conf)
 		auto idx_seq = trace_gep(gep, i);
 		for (const auto idx:idx_seq)
 			::std::cout << idx->getValue().getLimitedValue() << " ";
-		::std::cout << ": " << res.at(v->getValueOperand()) << "\n";
+		::std::cout << ": " << res.at(v->getValueOperand()).expression << "\n";
 	}
 }
 
