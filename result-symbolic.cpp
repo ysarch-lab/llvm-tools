@@ -127,7 +127,7 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 			break;
 		}
 		default:
-			store.insert({val, ::GiNaC::symbol("UNK_CALL")});
+			llvm_unreachable("Unsupported intrinsic");
 		}
 		break;
 	}
@@ -182,7 +182,7 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 		break;
 	}
 	default:
-		store.insert({val, ::GiNaC::symbol("UNKN_I")});
+		llvm_unreachable("Unsupported instruction");
 	}
 }
 
