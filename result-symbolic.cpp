@@ -395,6 +395,7 @@ static void run_eval(const config &conf, const prob &p, const ::llvm::StoreInst 
 	for (const auto &d: data)
 		f << d.first << "\t" << d.second << "\n";
 	f << "EOD\n\n";
+	f << "set title \"" << s->getFunction()->getFunction().getName().str() << "\" noenhanced\n";
 	f << "plot \"$data\" with lines title \""
 	  << s->getValueOperand()->getName().str() << "\"\n";
 	f.close();
