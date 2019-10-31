@@ -25,8 +25,6 @@
 static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
 	{"arg", required_argument, NULL, 'a'},
-	{"no-signed-zeros", no_argument, NULL, 'z'},
-	{"verbose", no_argument, NULL, 'v'},
 	{"help", no_argument, NULL, 'h'},
 };
 
