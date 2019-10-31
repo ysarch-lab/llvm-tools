@@ -25,6 +25,7 @@
 static const struct option options[] = {
 	{"function", required_argument, NULL, 'f'},
 	{"arg", required_argument, NULL, 'a'},
+	{"probability", no_argument, NULL, 'p'},
 	{"help", no_argument, NULL, 'h'},
 };
 
@@ -71,6 +72,7 @@ static store_list find_arg_values(::llvm::Function &f, unsigned arg) {
 struct config {
 	::std::string func = "run_";
 	unsigned arg = 4;
+	bool prob = false;
 };
 
 static const char * get_sym(void) {
@@ -191,6 +193,38 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 	}
 }
 
+static prob get_normal_dist(double u, double s2)
+{
+	::GiNaC::symbol x(get_sym());
+	::GiNaC::ex expr = (1 / ::GiNaC::sqrt(2 * ::GiNaC::Pi * s2)) * ::GiNaC::exp(((x - u) * (x - u) / (-2 * s2)));
+	return {expr, x};
+}
+
+static void add_prob_results(const ::llvm::Value *val, val_map &store)
+{
+	if (auto *C = ::llvm::dyn_cast<::llvm::ConstantFP>(val)) {
+		double Value = C->getValueAPF().convertToDouble();
+		store.insert({val, {Value, Value}});
+		return;
+	}
+	if (auto *C = ::llvm::dyn_cast<::llvm::ConstantInt>(val)) {
+		int64_t Value = C->getValue().getLimitedValue();
+		store.insert({val, {Value, Value}});
+		return;
+	}
+
+	const ::llvm::Instruction *I = ::llvm::cast<::llvm::Instruction>(val);
+	switch (I->getOpcode()) {
+	case ::llvm::Instruction::Load: {
+		// Assume X ~ N(0, 1)
+		store.insert({val, get_normal_dist(0, 1)});
+		break;
+	}
+	default:
+		llvm_unreachable("Unsupported instruction");
+	}
+}
+
 static val_map find_symbolic(inst_set &fringe, void(*f)(const ::llvm::Value *val, val_map &store))
 {
 	val_map results;
@@ -241,7 +275,8 @@ static void analyze_function(::llvm::Function &f, const config &conf)
 			fringe.insert(i);
 	}
 
-	auto res = find_symbolic(fringe, add_results);
+	auto proc_f = conf.prob ? add_prob_results : add_results;
+	auto res = find_symbolic(fringe, proc_f);
 	for (auto v:store_vals) {
 		// Pointer is the second arg for stores
 		::llvm::Value *ptr = v->getPointerOperand();
@@ -251,17 +286,23 @@ static void analyze_function(::llvm::Function &f, const config &conf)
 		auto idx_seq = trace_gep(gep, i);
 		for (const auto idx:idx_seq)
 			::std::cout << idx->getValue().getLimitedValue() << " ";
-		::std::cout << ": " << res.at(v->getValueOperand()).expression << "\n";
+		auto res_val = res.at(v->getValueOperand());
+		::std::cout << v->getValueOperand()->getName().str() << ": "
+		            << res_val.expression;
+		if (conf.prob)
+			::std::cout << " VAR: " << res_val.variable;
+		::std::cout << "\n";
 	}
 }
 
 int main(int argc, char **argv) {
 	char c = -1;
 	config conf;
-	while ((c = getopt_long(argc, argv, "f:a:h", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "f:a:ph", options, NULL)) != -1) {
 		switch (c) {
 		case 'f': conf.func = ::std::string(optarg); break;
 		case 'a': conf.arg = ::std::stoi(optarg); break;
+		case 'p': conf.prob = true; break;
 		default:
 			::std::cerr << "Unknown option: " << argv[optind - 1]
 			            << ::std::endl;
@@ -269,6 +310,7 @@ int main(int argc, char **argv) {
 			::std::cerr << "Available options:\n";
 			::std::cerr << "\t\t-f,--function <f> Function to examine.\n";
 			::std::cerr << "\t\t-a,--arg <a> Function output argument.\n";
+			::std::cerr << "\t\t-p,--probability Use probability distributions instead of symbolic variables\n";
 			return c == 'h' ? 0 : 1;
 		}
 	}
