@@ -191,7 +191,7 @@ static void add_results(const ::llvm::Value *val, val_map &store)
 	}
 }
 
-static val_map find_symbolic(inst_set &fringe)
+static val_map find_symbolic(inst_set &fringe, void(*f)(const ::llvm::Value *val, val_map &store))
 {
 	val_map results;
 	inst_set deps;
@@ -209,7 +209,7 @@ static val_map find_symbolic(inst_set &fringe)
 					continue;
 				// Constants are trivially computed
 				if (::llvm::isa<::llvm::Constant>(op_val)) {
-					add_results(op_val, results);
+					f(op_val, results);
 					continue;
 				}
 
@@ -223,7 +223,7 @@ static val_map find_symbolic(inst_set &fringe)
 				fringe.insert(i);
 			}
 			if (all_ready)
-				add_results(val, results);
+				f(val, results);
 			else
 				deps.insert(val);
 		}
@@ -241,7 +241,7 @@ static void analyze_function(::llvm::Function &f, const config &conf)
 			fringe.insert(i);
 	}
 
-	auto res = find_symbolic(fringe);
+	auto res = find_symbolic(fringe, add_results);
 	for (auto v:store_vals) {
 		// Pointer is the second arg for stores
 		::llvm::Value *ptr = v->getPointerOperand();
