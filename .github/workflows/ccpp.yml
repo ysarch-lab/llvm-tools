@@ -18,10 +18,12 @@ jobs:
         LLVM_VERSION: ${{ matrix.llvm }}
       run: sudo apt-get install libgraphviz-dev libginac-dev llvm-$LLVM_VERSION-dev
     - name: Configure
+      env:
+        LLVM_VERSION: ${{ matrix.llvm }}
       run: |
          mkdir _build
          cd _build
-         cmake ..
+         cmake .. -DLLVM_CONFIG=llvm-config-$LLVM_VERSION
     - name: Make
       run: |
         cd _build
