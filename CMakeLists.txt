@@ -73,3 +73,5 @@ endforeach()
 target_link_libraries(result-symbolic PRIVATE ${GINAC_LIBRARIES})
 target_include_directories(result-symbolic PRIVATE ${GINAC_INCLUDE_DIRS})
 target_compile_options(result-symbolic PRIVATE ${GINAC_CFLAGS_OTHER})
+
+configure_file(tests/lit.site.cfg.py.in tests/lit.site.cfg.py @ONLY)
