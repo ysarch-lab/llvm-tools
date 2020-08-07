@@ -88,7 +88,7 @@ static void analyze_function(::llvm::Function &f, const config &conf)
 		// Pointer is the second arg for stores
 		::llvm::Value *ptr = v->getPointerOperand();
 		::llvm::GetElementPtrInst *gep =
-			::llvm::cast<::llvm::GetElementPtrInst>(ptr);
+			::llvm::dyn_cast<::llvm::GetElementPtrInst>(ptr);
 		::llvm::AllocaInst *i;
 		auto idx_seq = trace_gep(gep, i);
 		for (const auto idx:idx_seq)
