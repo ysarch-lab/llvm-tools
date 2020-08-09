@@ -254,6 +254,14 @@ static void add_prob_results(const ::llvm::Value *val, val_map &store)
 			store.insert({val, {expr, new_var}});
 			break;
 		}
+		::GiNaC::symbol int_symbol("d" + I->getName().str());
+
+		::GiNaC::ex expr = ::GiNaC::integral(int_symbol,
+			::std::numeric_limits<double>::min(),
+			::std::numeric_limits<double>::max(),
+			LHS.expression.subs(LHS.variables[0] == (new_var - int_symbol)) * RHS.expression.subs(RHS.variables[0] == int_symbol));
+		store.insert({val, {expr, new_var}});
+		break;
 	}
 	default:
 		llvm_unreachable("Unsupported instruction");
