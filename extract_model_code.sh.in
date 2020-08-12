@@ -6,16 +6,16 @@ echo "Running on '$D'"
 MODEL_NAME=`echo $D | sed 's%/%_%g' | sed 's/models_//'`
 echo "Model name: '$MODEL_NAME'"
 
-EXEC_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*exec_wrap[^"]*'`
+EXEC_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*wrap_exec_[^s][^"]*'`
 echo "Execute function: $EXEC_FUNCTION"
 
-RUN_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*run_wrap[^"]*'`
+RUN_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*wrap_run[^"]*'`
 echo "Run function: $RUN_FUNCTION"
 
-EXEC_SIM_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*exec_sim_wrap[^"]*'`
+EXEC_SIM_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*wrap_exec_simulation[^"]*'`
 echo "Execute simulation function: $EXEC_SIM_FUNCTION"
 
-RUN_SIM_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*run_sim_wrap[^"]*'`
+RUN_SIM_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*wrap_simulation_run[^"]*'`
 echo "Run simulation function: $RUN_SIM_FUNCTION"
 
 EVALUATE_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*eval[^"]*'`
