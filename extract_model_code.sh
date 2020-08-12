@@ -35,7 +35,9 @@ $LLVM_LINK "$D"/*.parse.ll | $LLVM_OPT -internalize -internalize-public-api-list
 # Create a backup before applying restrictions
 cp $MODEL_NAME.ll $MODEL_NAME.pre-restrict.ll
 
-./param-restrict -f "$RUN_FUNCTION" -a 5 -l 2 -u 2 $MODEL_NAME.ll
+if [ "x$RUN_FUNCTION" != "x" ]; then
+	./param-restrict -f "$RUN_FUNCTION" -a 5 -l 2 -u 2 $MODEL_NAME.ll
+fi
 if [ "x$RUN_SIM_FUNCTION" != "x" ]; then
 	./param-restrict -f "$RUN_SIM_FUNCTION" -a 5 -l 2 -u 2 $MODEL_NAME.ll
 fi
