@@ -39,7 +39,7 @@ struct config {
 
 struct float_trait {
 	static const ::llvm::CmpInst::Predicate EQ = ::llvm::CmpInst::FCMP_OEQ;
-	static const ::llvm::CmpInst::Predicate LT = ::llvm::CmpInst::FCMP_OLT;
+	static const ::llvm::CmpInst::Predicate LT = ::llvm::CmpInst::FCMP_OLE;
 	static const ::llvm::CmpInst::Predicate GE = ::llvm::CmpInst::FCMP_OGE;
 	template<typename B>
 	static ::llvm::Value *build_cmp(B &builder, ::llvm::Value *val, double limit,
