@@ -3,7 +3,7 @@
 D=$1
 echo "Running on '$D'"
 
-MODEL_NAME=`echo $D | sed 's%/%_%g' | sed 's/_$//'`
+MODEL_NAME=`echo $D | sed 's%/%_%g' | sed 's/_$//' | sed 's/^models[^_]*_//'`
 echo "Model name: '$MODEL_NAME'"
 
 EXEC_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*wrap_exec_[^s][^"]*'`
