@@ -185,20 +185,9 @@ static void apply_function_arg_assumption(::llvm::Function &f,
 	auto &bb = f.getEntryBlock();
 	::llvm::IRBuilder<> builder(&*bb.getFirstInsertionPt());
 	::llvm::Argument *arg = f.arg_begin() + conf.arg;
-	::llvm::Value *val = builder.CreateLoad(arg, "arg_load");
+	::llvm::LoadInst *val = builder.CreateLoad(arg, "restricted_arg_load");
 
-	// Get assume Intrinsic
-	::llvm::Intrinsic::ID id =
-	  ::llvm::Function::lookupIntrinsicID("llvm.assume");
-	::llvm::Function *assume_decl =
-	  ::llvm::Intrinsic::getDeclaration(f.getParent(), id);
-
-	assert(conf.lower_bound.size() == 1);
-	assert(conf.upper_bound.size() == 1);
-	int64_t lower = conf.lower_bound[0];
-	int64_t upper = conf.upper_bound[0];
-
-	insert_assume<int_trait>(builder, val, lower, upper);
+	apply_assumption(builder, val, conf.lower_bound, conf.upper_bound);
 }
 
 static ::std::deque<double> parse_limits(const char *arg)
