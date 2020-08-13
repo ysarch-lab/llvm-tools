@@ -37,26 +37,34 @@ struct config {
 	::std::deque<double> upper_bound;
 };
 
-template<typename B>
-static ::llvm::Value *build_cmp(B &builder, ::llvm::Value *val, double limit,
-                                ::llvm::CmpInst::Predicate p, const char *n)
-{
-	return builder.CreateFCmp(p, val,
-	    ::llvm::ConstantFP::get(val->getType(), limit), n);
-}
+struct float_trait {
+	static const ::llvm::CmpInst::Predicate EQ = ::llvm::CmpInst::FCMP_OEQ;
+	static const ::llvm::CmpInst::Predicate LT = ::llvm::CmpInst::FCMP_OLT;
+	static const ::llvm::CmpInst::Predicate GE = ::llvm::CmpInst::FCMP_OGE;
+	template<typename B>
+	static ::llvm::Value *build_cmp(B &builder, ::llvm::Value *val, double limit,
+					::llvm::CmpInst::Predicate p, const char *n)
+	{
+		return builder.CreateFCmp(p, val,
+		    ::llvm::ConstantFP::get(val->getType(), limit), n);
+	}
+};
 
-template<typename B>
-static ::llvm::Value *build_cmp(B &builder, ::llvm::Value *val, int64_t limit,
-                                ::llvm::CmpInst::Predicate p, const char *n)
-{
-	return builder.CreateICmp(p, val,
-	    ::llvm::ConstantInt::get(val->getType(), limit), n);
-}
+struct int_trait {
+	static const ::llvm::CmpInst::Predicate EQ = ::llvm::CmpInst::ICMP_EQ;
+	static const ::llvm::CmpInst::Predicate LT = ::llvm::CmpInst::ICMP_SLT;
+	static const ::llvm::CmpInst::Predicate GE = ::llvm::CmpInst::ICMP_SGE;
+	template<typename B>
+	static ::llvm::Value *build_cmp(B &builder, ::llvm::Value *val, int64_t limit,
+					::llvm::CmpInst::Predicate p, const char *n)
+	{
+		return builder.CreateICmp(p, val,
+		    ::llvm::ConstantInt::get(val->getType(), limit), n);
+	}
+};
 
-template<::llvm::CmpInst::Predicate EQ,
-         ::llvm::CmpInst::Predicate LT,
-	 ::llvm::CmpInst::Predicate GE,
-	 typename B, typename C>
+
+template<typename T, typename B, typename C>
 static void insert_assume(B &builder, ::llvm::Value *val, C lower, C upper)
 {
 	// Get assume Intrinsic
@@ -68,15 +76,15 @@ static void insert_assume(B &builder, ::llvm::Value *val, C lower, C upper)
 
 	if (lower == upper) {
 		::llvm::Value *eq_cond =
-		    build_cmp(builder, val, upper, EQ, "eq_bound");
+		    T::build_cmp(builder, val, upper, T::EQ, "eq_bound");
 		builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {eq_cond});
 	} else {
 		assert(lower < upper);
 
 		::llvm::Value *upper_cond =
-		    build_cmp(builder, val, upper, LT, "upper_bound");
+		    T::build_cmp(builder, val, upper, T::LT, "upper_bound");
 		::llvm::Value *lower_cond =
-		    build_cmp(builder, val, lower, GE, "lower_bound");
+		    T::build_cmp(builder, val, lower, T::GE, "lower_bound");
 
 		builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {upper_cond});
 		builder.CreateCall(assume_decl->getFunctionType(), assume_decl, {lower_cond});
@@ -99,9 +107,9 @@ static void apply_assumption(B &builder, ::llvm::LoadInst *param_val,
 			::llvm::Value *element_val =
 			    builder.CreateExtractValue(param_val, {i}, "extract_param_val");
 			if (element_val->getType()->isFloatingPointTy())
-				insert_assume<::llvm::CmpInst::FCMP_OEQ, ::llvm::CmpInst::FCMP_OLT, ::llvm::CmpInst::FCMP_OGE>(builder, element_val, lower[i], upper[i]);
+				insert_assume<float_trait>(builder, element_val, lower[i], upper[i]);
 			else
-				insert_assume<::llvm::CmpInst::ICMP_EQ, ::llvm::CmpInst::ICMP_SLT, ::llvm::CmpInst::ICMP_SGE>(builder, element_val, lower[i], upper[i]);
+				insert_assume<int_trait>(builder, element_val, lower[i], upper[i]);
 		}
 	} else {
 		assert(!"Not implemented!");
@@ -180,7 +188,7 @@ static void apply_function_arg_assumption(::llvm::Function &f,
 	int64_t lower = conf.lower_bound[0];
 	int64_t upper = conf.upper_bound[0];
 
-	insert_assume<::llvm::CmpInst::ICMP_EQ, ::llvm::CmpInst::ICMP_SLT, ::llvm::CmpInst::ICMP_SGE>(builder, val, lower, upper);
+	insert_assume<int_trait>(builder, val, lower, upper);
 }
 
 static ::std::deque<double> parse_limits(const char *arg)
