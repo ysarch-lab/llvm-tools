@@ -83,9 +83,34 @@ static void insert_assume(B &builder, ::llvm::Value *val, C lower, C upper)
 	}
 }
 
-static void apply_assumption(::llvm::Instruction *src, const int_seq &indices,
+template<typename B>
+static void apply_assumption(B &builder, ::llvm::LoadInst *param_val,
 		             const ::std::deque<double> &lower,
-			     const ::std::deque<double> upper)
+			     const ::std::deque<double> &upper)
+{
+	::llvm::Type *param_type = param_val->getType();
+
+	// Create bound conditions
+	if (param_type->isArrayTy()) {
+		const int64_t num_elements = param_type->getArrayNumElements();
+		assert(num_elements == upper.size());
+		assert(num_elements == lower.size());
+		for (unsigned i = 0; i < num_elements; ++i) {
+			::llvm::Value *element_val =
+			    builder.CreateExtractValue(param_val, {i}, "extract_param_val");
+			if (element_val->getType()->isFloatingPointTy())
+				insert_assume<::llvm::CmpInst::FCMP_OEQ, ::llvm::CmpInst::FCMP_OLT, ::llvm::CmpInst::FCMP_OGE>(builder, element_val, lower[i], upper[i]);
+			else
+				insert_assume<::llvm::CmpInst::ICMP_EQ, ::llvm::CmpInst::ICMP_SLT, ::llvm::CmpInst::ICMP_SGE>(builder, element_val, lower[i], upper[i]);
+		}
+	} else {
+		assert(!"Not implemented!");
+	}
+}
+
+static void apply_param_assumption(::llvm::Instruction *src, const int_seq &indices,
+		                   const ::std::deque<double> &lower,
+			           const ::std::deque<double> &upper)
 {
 	::std::cerr << "Source: " << src->getName().str() << "\n";
 	::std::cerr << "Found indices:";
@@ -116,23 +141,10 @@ static void apply_assumption(::llvm::Instruction *src, const int_seq &indices,
 	::llvm::Value *alloca_gep =
 	  builder.CreateInBoundsGEP(src, llvm_indices, "dst_gep");
 
-	::llvm::Value *load_orig = builder.CreateLoad(orig_gep, "load_orig");
+	::llvm::LoadInst *load_orig = builder.CreateLoad(orig_gep, "load_orig");
 	::llvm::Value *store_orig = builder.CreateStore(load_orig, alloca_gep);
 
-	::llvm::Value *param_val = load_orig;
-	::llvm::Type *param_type = param_val->getType();
-
-	// Create bound conditions
-	if (param_type->isArrayTy()) {
-		const int64_t num_elements = param_type->getArrayNumElements();
-		assert(num_elements == upper.size());
-		assert(num_elements == lower.size());
-		for (unsigned i = 0; i < num_elements; ++i) {
-			::llvm::Value *element_val =
-			    builder.CreateExtractValue(param_val, {i}, "extract_param_val");
-			insert_assume<::llvm::CmpInst::FCMP_OEQ, ::llvm::CmpInst::FCMP_OLT, ::llvm::CmpInst::FCMP_OGE>(builder, element_val, lower[i], upper[i]);
-		}
-	}
+	apply_assumption(builder, load_orig, lower, upper);
 }
 
 static void apply_module_param_assumption(::llvm::Module *m,
@@ -140,7 +152,7 @@ static void apply_module_param_assumption(::llvm::Module *m,
 {
 	auto res = find_src_and_indices(m, conf.param);
 	if (!res.second.empty()) {
-		apply_assumption(res.first, res.second, conf.lower_bound, conf.upper_bound);
+		apply_param_assumption(res.first, res.second, conf.lower_bound, conf.upper_bound);
 	}
 }
 
