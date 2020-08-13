@@ -99,7 +99,8 @@ static void apply_assumption(B &builder, ::llvm::LoadInst *param_val,
 	::llvm::Type *param_type = param_val->getType();
 
 	// Create bound conditions
-	if (param_type->isArrayTy()) {
+	switch (param_type->getTypeID()) {
+	case ::llvm::Type::ArrayTyID: {
 		const int64_t num_elements = param_type->getArrayNumElements();
 		assert(num_elements == upper.size());
 		assert(num_elements == lower.size());
@@ -111,7 +112,16 @@ static void apply_assumption(B &builder, ::llvm::LoadInst *param_val,
 			else
 				insert_assume<int_trait>(builder, element_val, lower[i], upper[i]);
 		}
-	} else {
+		break;
+	}
+	case ::llvm::Type::IntegerTyID:
+		insert_assume<int_trait>(builder, param_val, lower[0], upper[0]);
+		break;
+	case ::llvm::Type::FloatTyID:
+	case ::llvm::Type::DoubleTyID:
+		insert_assume<float_trait>(builder, param_val, lower[0], upper[0]);
+		break;
+	default:
 		assert(!"Not implemented!");
 	}
 }
