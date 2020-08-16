@@ -30,22 +30,22 @@ $RM $MODEL_DIR/botvinick/const-input/*.ll
 mkdir -p $MODEL_DIR/botvinick/const-input
 mv *.ll $MODEL_DIR/botvinick/const-input
 
-PNL_LLVM_DEBUG=$SHARED python3 -m pytest -n0 tests/models/test_greedy_agent.py -k 'predator_prey and LLVMRun'
+PNL_LLVM_DEBUG=$SHARED python3 -m pytest -n0 tests/models/test_greedy_agent.py -k 'predator_prey and LLVMRun and 2'
 $RM $MODEL_DIR/predator-prey/var-params/*.ll
 mkdir -p $MODEL_DIR/predator-prey/var-params
 mv *.ll $MODEL_DIR/predator-prey/var-params
 
-PNL_LLVM_DEBUG="$SHARED;const_params" python3 -m pytest -n0 tests/models/test_greedy_agent.py -k 'predator_prey and LLVMRun'
+PNL_LLVM_DEBUG="$SHARED;const_params" python3 -m pytest -n0 tests/models/test_greedy_agent.py -k 'predator_prey and LLVMRun and 2'
 $RM $MODEL_DIR/predator-prey/const-params/*.ll
 mkdir -p $MODEL_DIR/predator-prey/const-params
 mv *.ll $MODEL_DIR/predator-prey/const-params
 
-PNL_LLVM_DEBUG="$SHARED;const_params;const_state" python3 -m pytest -n0 tests/models/test_greedy_agent.py -k 'predator_prey and LLVMRun'
+PNL_LLVM_DEBUG="$SHARED;const_params;const_state" python3 -m pytest -n0 tests/models/test_greedy_agent.py -k 'predator_prey and LLVMRun and 2'
 $RM $MODEL_DIR/predator-prey/const-state/*.ll
 mkdir -p $MODEL_DIR/predator-prey/const-state
 mv *.ll $MODEL_DIR/predator-prey/const-state
 
-PNL_LLVM_DEBUG="$SHARED;const_params;const_state;const_input=[[[1.1576537,  0.60782117]],[[-0.03479106, -0.47666293]],[[-0.60836214,  0.1760381 ]]]" python3 -m pytest -n0 tests/models/test_greedy_agent.py -k 'predator_prey and LLVMRun'
+PNL_LLVM_DEBUG="$SHARED;const_params;const_state;const_input=[[[1.1576537,  0.60782117]],[[-0.03479106, -0.47666293]],[[-0.60836214,  0.1760381 ]]]" python3 -m pytest -n0 tests/models/test_greedy_agent.py -k 'predator_prey and LLVMRun and 2'
 $RM $MODEL_DIR/predator-prey/const-input/*.ll
 mkdir -p $MODEL_DIR/predator-prey/const-input
 mv *.ll $MODEL_DIR/predator-prey/const-input
