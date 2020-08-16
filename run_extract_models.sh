@@ -70,4 +70,19 @@ $RM $MODEL_DIR/bi-percepts/const-input/*.ll
 mkdir -p $MODEL_DIR/simplified-necker-cube/const-input
 mv *.ll $MODEL_DIR/simplified-necker-cube/const-input
 
+PNL_LLVM_DEBUG=$SHARED python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_necker and LLVMRun'
+$RM $MODEL_DIR/bi-percepts/var-params/*.ll
+mkdir -p $MODEL_DIR/vector-necker-cube/var-params
+mv *.ll $MODEL_DIR/vector-necker-cube/var-params
+
+PNL_LLVM_DEBUG="$SHARED;const_params" python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_necker and LLVMRun'
+$RM $MODEL_DIR/bi-percepts/const-params/*.ll
+mkdir -p $MODEL_DIR/vector-necker-cube/const-params
+mv *.ll $MODEL_DIR/vector-necker-cube/const-params
+
+PNL_LLVM_DEBUG="$SHARED;const_params;const_state" python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_necker and LLVMRun'
+$RM $MODEL_DIR/bi-percepts/const-state/*.ll
+mkdir -p $MODEL_DIR/vector-necker-cube/const-state
+mv *.ll $MODEL_DIR/vector-necker-cube/const-state
+
 popd
