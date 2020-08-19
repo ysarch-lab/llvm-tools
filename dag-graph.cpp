@@ -58,6 +58,13 @@ static ::std::string get_inst_name(const Instruction &i, const config &c)
 			name += ":";
 		name += loc;
 	}
+	if (name[0] == '_')
+		name.erase(0, 1);
+	::std::string::size_type n = name.rfind("__");
+	if (n != ::std::string::npos)
+		name.erase(n);
+	while (*name.rbegin() == '_')
+		name.erase(name.size() - 1);
 	return name;
 }
 
