@@ -119,6 +119,11 @@ static void graph_function(Function &f, Agraph_t *g, const config &c)
 				if (op_name.find("Input_CIM") != ::std::string::npos)
 					// attribute, value, default_value
 					agsafeset(pred_node, "color", "green", "black");
+				if (op_name.find("Projection") != ::std::string::npos) {
+					// attribute, value, default_value
+					agsafeset(pred_node, "color", "purple", "black");
+					agsafeset(pred_node, "style", "dashed", "solid");
+				}
 				auto edge = agedge(g, pred_node, my_node, nullptr, 1);
 				// attribute, value, default_value
 				agsafeset(edge, "color", "blue", "black");
