@@ -42,7 +42,7 @@ add_executable(dag-graph dag-graph.cpp ${SHARED_SRCS})
 add_executable(param-restrict param-restrict.cpp ${CPP_SHARED})
 add_executable(result-range result-range.cpp ${CPP_SHARED})
 add_executable(result-symbolic result-symbolic.cpp ${CPP_SHARED})
-
+add_executable(clone-checker clone-checker.cpp ${CPP_SHARED})
 
 # Work around an LLVM cmake bug that checks DYLIB_COMPONENTS instead of
 # LINK_LLVM_DYLIB
@@ -54,7 +54,7 @@ endif()
 
 # Link with LLVM libraries
 foreach(T IN ITEMS dag-graph graph op-counter param-restrict result-range
-		result-symbolic)
+		result-symbolic clone-checker)
 	llvm_config(${T} ${USE_SHARED} support core irreader analysis passes)
 	set_property(TARGET ${T} PROPERTY CXX_STANDARD 17)
 endforeach()
@@ -73,6 +73,11 @@ endforeach()
 target_link_libraries(result-symbolic PRIVATE ${GINAC_LIBRARIES})
 target_include_directories(result-symbolic PRIVATE ${GINAC_INCLUDE_DIRS})
 target_compile_options(result-symbolic PRIVATE ${GINAC_CFLAGS_OTHER})
+
+target_link_libraries(clone-checker PRIVATE ${GINAC_LIBRARIES})
+target_include_directories(clone-checker PRIVATE ${GINAC_INCLUDE_DIRS})
+target_compile_options(clone-checker PRIVATE ${GINAC_CFLAGS_OTHER})
+
 
 configure_file(tests/lit.site.cfg.py.in tests/lit.site.cfg.py @ONLY)
 configure_file(extract_model_code.sh.in extract_model_code.sh @ONLY)
