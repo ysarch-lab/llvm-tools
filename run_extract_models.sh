@@ -2,7 +2,9 @@
 
 SHARED="debug_info;llvm;const_data"
 RM="rm -f"
-MODEL_DIR=~/llvm-tools/models/
+if [ "x$MODEL_DIR" == "x" ]; then
+	MODEL_DIR=$(dirname "$0")/models/
+fi
 
 if [ "x$PNL_DIR" == "x" ]; then
 	PNL_DIR=~/PsyNeuLink
