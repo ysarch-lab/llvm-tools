@@ -108,17 +108,24 @@ static void graph_function(Function &f, Agraph_t *g, const config &c)
 
 			::std::string name = get_inst_name(*ii, c);
 			auto my_node = agnode(g, const_cast<char*>(name.c_str()), 1);
-			if (name.find("Output_CIM") != ::std::string::npos)
-				// attribute, value, default_value
+			bool is_output_cim = name.find("Output_CIM") != ::std::string::npos;
+			if (is_output_cim) {
 				agsafeset(my_node, "color", "red", "black");
+				agsafeset(my_node, "style", "dashed", "solid");
+			}
 			for (auto &op_name:pred_names) {
 				// Avoid self edges when using pretty names
 				if (name == op_name && c.pretty_names)
 					continue;
 				auto pred_node = agnode(g, const_cast<char*>(op_name.c_str()), 1);
-				if (op_name.find("Input_CIM") != ::std::string::npos)
+				if (is_output_cim)
+					agsafeset(pred_node, "color", "red", "black");
+				if (op_name.find("Input_CIM") != ::std::string::npos) {
 					// attribute, value, default_value
+					agsafeset(my_node, "color", "green", "black");
 					agsafeset(pred_node, "color", "green", "black");
+					agsafeset(pred_node, "style", "dashed", "solid");
+				}
 				if (op_name.find("Projection") != ::std::string::npos) {
 					// attribute, value, default_value
 					agsafeset(pred_node, "color", "purple", "black");
