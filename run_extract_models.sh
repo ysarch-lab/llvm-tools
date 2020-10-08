@@ -147,4 +147,26 @@ $RM $MODEL_DIR/lca/const-input/*.ll
 mkdir -p $MODEL_DIR/lca/const-input
 mv *.ll $MODEL_DIR/lca/const-input
 
+### DDM ###
+
+PNL_LLVM_DEBUG=$SHARED python3 -m pytest -n0 tests/mechanisms/test_ddm_mechanism.py -k 'LCA_equivalent and LLVMRun'
+$RM $MODEL_DIR/ddm/var-params/*.ll
+mkdir -p $MODEL_DIR/ddm/var-params
+mv *.ll $MODEL_DIR/ddm/var-params
+
+PNL_LLVM_DEBUG="$SHARED;const_params" python3 -m pytest -n0 tests/mechanisms/test_ddm_mechanism.py -k 'LCA_equivalent and LLVMRun'
+$RM $MODEL_DIR/ddm/const-params/*.ll
+mkdir -p $MODEL_DIR/ddm/const-params
+mv *.ll $MODEL_DIR/ddm/const-params
+
+PNL_LLVM_DEBUG="$SHARED;const_params;const_state" python3 -m pytest -n0 tests/mechanisms/test_ddm_mechanism.py -k 'LCA_equivalent and LLVMRun'
+$RM $MODEL_DIR/ddm/const-state/*.ll
+mkdir -p $MODEL_DIR/ddm/const-state
+mv *.ll $MODEL_DIR/ddm/const-state
+
+PNL_LLVM_DEBUG="$SHARED;const_params;const_state;const_input=[[[1.0]]]" python3 -m pytest -n0 tests/mechanisms/test_ddm_mechanism.py -k 'LCA_equivalent and LLVMRun'
+$RM $MODEL_DIR/ddm/const-input/*.ll
+mkdir -p $MODEL_DIR/ddm/const-input
+mv *.ll $MODEL_DIR/ddm/const-input
+
 popd
