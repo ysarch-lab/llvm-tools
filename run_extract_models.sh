@@ -119,4 +119,32 @@ $RM $MODEL_DIR/vector-necker-cube/const-state/*.ll
 mkdir -p $MODEL_DIR/vector-necker-cube/const-state
 mv *.ll $MODEL_DIR/vector-necker-cube/const-state
 
+# TODO: Add vectorized necker cube input
+#PNL_LLVM_DEBUG="$SHARED;const_params;const_state;const_input=[[[3127.65559899]], [[3610.74194658]],[[6468.6978669]], [[-4615.15074428]],[[-7369.73302025]], [[-11190.45001744]]]" python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_vectorized_necker and LLVMRun'
+#$RM $MODEL_DIR/vector-necker-cube/const-input/*.ll
+#mkdir -p $MODEL_DIR/vector-necker-cube/const-input
+#mv *.ll $MODEL_DIR/vector-necker-cube/const-input
+
+### LCA ###
+
+PNL_LLVM_DEBUG=$SHARED python3 -m pytest -n0 tests/mechanisms/test_lca.py -k 'DDM_equivalent and LLVMRun'
+$RM $MODEL_DIR/lca/var-params/*.ll
+mkdir -p $MODEL_DIR/lca/var-params
+mv *.ll $MODEL_DIR/lca/var-params
+
+PNL_LLVM_DEBUG="$SHARED;const_params" python3 -m pytest -n0 tests/mechanisms/test_lca.py -k 'DDM_equivalent and LLVMRun'
+$RM $MODEL_DIR/lca/const-params/*.ll
+mkdir -p $MODEL_DIR/lca/const-params
+mv *.ll $MODEL_DIR/lca/const-params
+
+PNL_LLVM_DEBUG="$SHARED;const_params;const_state" python3 -m pytest -n0 tests/mechanisms/test_lca.py -k 'DDM_equivalent and LLVMRun'
+$RM $MODEL_DIR/lca/const-state/*.ll
+mkdir -p $MODEL_DIR/lca/const-state
+mv *.ll $MODEL_DIR/lca/const-state
+
+PNL_LLVM_DEBUG="$SHARED;const_params;const_state;const_input=[[[1.0, -1.0]]]" python3 -m pytest -n0 tests/mechanisms/test_lca.py -k 'DDM_equivalent and LLVMRun'
+$RM $MODEL_DIR/lca/const-input/*.ll
+mkdir -p $MODEL_DIR/lca/const-input
+mv *.ll $MODEL_DIR/lca/const-input
+
 popd
