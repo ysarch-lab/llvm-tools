@@ -12,6 +12,9 @@ fi
 
 pushd $PNL_DIR
 $RM -v *.ll
+
+### Botvinnick Stroop Effect ###
+
 PNL_LLVM_DEBUG=$SHARED python3 -m pytest -n0 tests/models/test_botvinick.py -k LLVMRun
 $RM $MODEL_DIR/botvinick/var-params/*.ll
 mkdir -p $MODEL_DIR/botvinick/var-params
@@ -31,6 +34,8 @@ PNL_LLVM_DEBUG="$SHARED;const_params;const_state;const_input=[[[1,0,0]],[[0,1,0]
 $RM $MODEL_DIR/botvinick/const-input/*.ll
 mkdir -p $MODEL_DIR/botvinick/const-input
 mv *.ll $MODEL_DIR/botvinick/const-input
+
+### Predator-Prey ###
 
 PNL_LLVM_DEBUG=$SHARED python3 -m pytest -n0 tests/models/test_greedy_agent.py -k 'predator_prey and LLVMRun and 2'
 $RM $MODEL_DIR/predator-prey/var-params/*.ll
@@ -52,6 +57,8 @@ $RM $MODEL_DIR/predator-prey/const-input/*.ll
 mkdir -p $MODEL_DIR/predator-prey/const-input
 mv *.ll $MODEL_DIR/predator-prey/const-input
 
+### Simplified Necker Cube ###
+
 PNL_LLVM_DEBUG=$SHARED python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_necker and LLVMRun-3'
 $RM $MODEL_DIR/bi-percepts/var-params/*.ll
 mkdir -p $MODEL_DIR/simplified-necker-cube/var-params
@@ -71,6 +78,8 @@ PNL_LLVM_DEBUG="$SHARED;const_params;const_state;const_input=[[[3127.65559899]],
 $RM $MODEL_DIR/bi-percepts/const-input/*.ll
 mkdir -p $MODEL_DIR/simplified-necker-cube/const-input
 mv *.ll $MODEL_DIR/simplified-necker-cube/const-input
+
+### Full Necker Cube ###
 
 PNL_LLVM_DEBUG=$SHARED python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_necker and LLVMRun-8'
 $RM $MODEL_DIR/bi-percepts/var-params/*.ll
@@ -92,6 +101,8 @@ mv *.ll $MODEL_DIR/full-necker-cube/const-state
 #$RM $MODEL_DIR/bi-percepts/const-input/*.ll
 #mkdir -p $MODEL_DIR/full-necker-cube/const-input
 #mv *.ll $MODEL_DIR/full-necker-cube/const-input
+
+### Vectorized Necker Cube ###
 
 PNL_LLVM_DEBUG=$SHARED python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_vectorized_necker and LLVMRun'
 $RM $MODEL_DIR/bi-percepts/var-params/*.ll
