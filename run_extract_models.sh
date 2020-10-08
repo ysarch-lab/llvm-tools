@@ -60,62 +60,62 @@ mv *.ll $MODEL_DIR/predator-prey/const-input
 ### Simplified Necker Cube ###
 
 PNL_LLVM_DEBUG=$SHARED python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_necker and LLVMRun-3'
-$RM $MODEL_DIR/bi-percepts/var-params/*.ll
+$RM $MODEL_DIR/simplified-necker-cube/var-params/*.ll
 mkdir -p $MODEL_DIR/simplified-necker-cube/var-params
 mv *.ll $MODEL_DIR/simplified-necker-cube/var-params
 
 PNL_LLVM_DEBUG="$SHARED;const_params" python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_necker and LLVMRun-3'
-$RM $MODEL_DIR/bi-percepts/const-params/*.ll
+$RM $MODEL_DIR/simplified-necker-cube/const-params/*.ll
 mkdir -p $MODEL_DIR/simplified-necker-cube/const-params
 mv *.ll $MODEL_DIR/simplified-necker-cube/const-params
 
 PNL_LLVM_DEBUG="$SHARED;const_params;const_state" python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_necker and LLVMRun-3'
-$RM $MODEL_DIR/bi-percepts/const-state/*.ll
+$RM $MODEL_DIR/simplified-necker-cube/const-state/*.ll
 mkdir -p $MODEL_DIR/simplified-necker-cube/const-state
 mv *.ll $MODEL_DIR/simplified-necker-cube/const-state
 
 PNL_LLVM_DEBUG="$SHARED;const_params;const_state;const_input=[[[3127.65559899]], [[3610.74194658]],[[6468.6978669]], [[-4615.15074428]],[[-7369.73302025]], [[-11190.45001744]]]" python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_necker and LLVMRun-3'
-$RM $MODEL_DIR/bi-percepts/const-input/*.ll
+$RM $MODEL_DIR/simplified-necker-cube/const-input/*.ll
 mkdir -p $MODEL_DIR/simplified-necker-cube/const-input
 mv *.ll $MODEL_DIR/simplified-necker-cube/const-input
 
 ### Full Necker Cube ###
 
 PNL_LLVM_DEBUG=$SHARED python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_necker and LLVMRun-8'
-$RM $MODEL_DIR/bi-percepts/var-params/*.ll
+$RM $MODEL_DIR/full-necker-cube/var-params/*.ll
 mkdir -p $MODEL_DIR/full-necker-cube/var-params
 mv *.ll $MODEL_DIR/full-necker-cube/var-params
 
 PNL_LLVM_DEBUG="$SHARED;const_params" python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_necker and LLVMRun-8'
-$RM $MODEL_DIR/bi-percepts/const-params/*.ll
+$RM $MODEL_DIR/full-necker-cube/const-params/*.ll
 mkdir -p $MODEL_DIR/full-necker-cube/const-params
 mv *.ll $MODEL_DIR/full-necker-cube/const-params
 
 PNL_LLVM_DEBUG="$SHARED;const_params;const_state" python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_necker and LLVMRun-8'
-$RM $MODEL_DIR/bi-percepts/const-state/*.ll
+$RM $MODEL_DIR/full-necker-cube/const-state/*.ll
 mkdir -p $MODEL_DIR/full-necker-cube/const-state
 mv *.ll $MODEL_DIR/full-necker-cube/const-state
 
 # TODO: Add full necker cube input
 #PNL_LLVM_DEBUG="$SHARED;const_params;const_state;const_input=[[[3127.65559899]], [[3610.74194658]],[[6468.6978669]], [[-4615.15074428]],[[-7369.73302025]], [[-11190.45001744]]]" python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_necker and LLVMRun-8'
-#$RM $MODEL_DIR/bi-percepts/const-input/*.ll
+#$RM $MODEL_DIR/full-necker-cube/const-input/*.ll
 #mkdir -p $MODEL_DIR/full-necker-cube/const-input
 #mv *.ll $MODEL_DIR/full-necker-cube/const-input
 
 ### Vectorized Necker Cube ###
 
 PNL_LLVM_DEBUG=$SHARED python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_vectorized_necker and LLVMRun'
-$RM $MODEL_DIR/bi-percepts/var-params/*.ll
+$RM $MODEL_DIR/vector-necker-cube/var-params/*.ll
 mkdir -p $MODEL_DIR/vector-necker-cube/var-params
 mv *.ll $MODEL_DIR/vector-necker-cube/var-params
 
 PNL_LLVM_DEBUG="$SHARED;const_params" python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_vectorized_necker and LLVMRun'
-$RM $MODEL_DIR/bi-percepts/const-params/*.ll
+$RM $MODEL_DIR/vector-necker-cube/const-params/*.ll
 mkdir -p $MODEL_DIR/vector-necker-cube/const-params
 mv *.ll $MODEL_DIR/vector-necker-cube/const-params
 
 PNL_LLVM_DEBUG="$SHARED;const_params;const_state" python3 -m pytest -n0 tests/models/test_bi_percepts.py -k 'test_vectorized_necker and LLVMRun'
-$RM $MODEL_DIR/bi-percepts/const-state/*.ll
+$RM $MODEL_DIR/vector-necker-cube/const-state/*.ll
 mkdir -p $MODEL_DIR/vector-necker-cube/const-state
 mv *.ll $MODEL_DIR/vector-necker-cube/const-state
 
