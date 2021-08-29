@@ -3,6 +3,7 @@
 #include <getopt.h>
 
 #include <cassert>
+#include <chrono>
 #include <deque>
 #include <iostream>
 #include <string>
@@ -93,11 +94,15 @@ static void analyze_function(::llvm::Function &f, const config &conf)
 		auto idx_seq = trace_gep(gep, i);
 		for (const auto idx:idx_seq)
 			llvm_cout << idx->getValue() << " ";
-		llvm_cout << "is known to be in: "
-			  << lvi.getConstantRange(v->getValueOperand(), v->getParent());
+		auto start = ::std::chrono::high_resolution_clock::now();
+		auto const_range = lvi.getConstantRange(v->getValueOperand(), v->getParent());
+		auto finish = ::std::chrono::high_resolution_clock::now();
+		::std::chrono::duration<double> dur = finish - start;
+		llvm_cout << "is known to be in: " << const_range;
 		if (conf.verbose)
 			llvm_cout << " " << *v->getValueOperand();
 		llvm_cout << "\n";
+		llvm_cout << "Query took: " << (dur.count() * 1000) << " ms\n";
 	}
 	wp->releaseMemory();
 }
