@@ -74,10 +74,5 @@ target_link_libraries(result-symbolic PRIVATE ${GINAC_LIBRARIES})
 target_include_directories(result-symbolic PRIVATE ${GINAC_INCLUDE_DIRS})
 target_compile_options(result-symbolic PRIVATE ${GINAC_CFLAGS_OTHER})
 
-target_link_libraries(clone-checker PRIVATE ${GINAC_LIBRARIES})
-target_include_directories(clone-checker PRIVATE ${GINAC_INCLUDE_DIRS})
-target_compile_options(clone-checker PRIVATE ${GINAC_CFLAGS_OTHER})
-
-
 configure_file(tests/lit.site.cfg.py.in tests/lit.site.cfg.py @ONLY)
 configure_file(extract_model_code.sh.in extract_model_code.sh @ONLY)

@@ -12,8 +12,6 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include <ginac/ginac.h>
-
 
 #include <llvm/Analysis/Passes.h>
 #include <llvm/Analysis/LazyValueInfo.h>
