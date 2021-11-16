@@ -55,7 +55,8 @@ endif()
 # Link with LLVM libraries
 foreach(T IN ITEMS dag-graph graph op-counter param-restrict result-range
 		result-symbolic clone-checker)
-	llvm_config(${T} ${USE_SHARED} support core irreader analysis passes)
+	llvm_config(${T} ${USE_SHARED} support core irreader analysis passes
+		transformutils)
 	set_property(TARGET ${T} PROPERTY CXX_STANDARD 17)
 endforeach()
 
