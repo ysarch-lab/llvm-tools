@@ -13,11 +13,17 @@ target triple = "unknown-unknown-unknown"
 ; CHECK-NEXT: Used in store:  store double %.16.i.i.i.i126.1.i, double* %.24.repack.repack12, align 8, !dbg !225
 ; CHECK-NEXT: Used in store:  store double %.16.i.i.i.i126.i, double* %.24.repack.repack, align 8, !dbg !225
 ; CHECK-NEXT: 0 0 0 is known to be in: [0.49393620185134907, 0.49768592106276405]
+; CHECK-NEXT: Query took
 ; CHECK-NEXT: 0 0 1 is known to be in: [0.4939366625752547, 0.49768638184456893]
+; CHECK-NEXT: Query took
 ; CHECK-NEXT: 0 1 0 is known to be in: [0.97589279627021074, 0.99076602139483516]
+; CHECK-NEXT: Query took
 ; CHECK-NEXT: 1 0 0 is known to be in: [0.48796983591996623, 0.49543155228393254]
+; CHECK-NEXT: Query took
 ; CHECK-NEXT: 1 0 1 is known to be in: [0.48797125312437434, 0.49543296687156191]
+; CHECK-NEXT: Query took
 ; CHECK-NEXT: 1 1 0 is known to be in: [0.952461009283045, 0.98181249531924819]
+; CHECK-NEXT: Query took
 
 
 ; Function Attrs: nounwind readnone speculatable willreturn
