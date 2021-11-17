@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 D=$1
 echo "Running on '$D'"
