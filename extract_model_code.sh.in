@@ -39,7 +39,7 @@ if [ "x$RUN_FUNCTION" != "x" ]; then
 	./param-restrict -f "$RUN_FUNCTION" -a 5 -l 2 -u 2 $MODEL_NAME.ll
 fi
 if [ "x$RUN_SIM_FUNCTION" != "x" ]; then
-	./param-restrict -f "$RUN_SIM_FUNCTION" -a 5 -l 2 -u 2 $MODEL_NAME.ll
+	./param-restrict -f "$RUN_SIM_FUNCTION" -a 5 -l 1 -u 1 $MODEL_NAME.ll
 fi
 
 VARIANT=$(basename "$D")
