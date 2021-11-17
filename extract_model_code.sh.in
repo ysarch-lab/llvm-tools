@@ -18,7 +18,7 @@ echo "Execute simulation function: $EXEC_SIM_FUNCTION"
 RUN_SIM_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*wrap_simulation_run[^"]*'`
 echo "Run simulation function: $RUN_SIM_FUNCTION"
 
-EVALUATE_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^"]*eval[^"]*'`
+EVALUATE_FUNCTION=`grep define "$D"/*.parse.ll | grep -o '[^@"]*eval[^"(]*'`
 echo "Evaluate function: $EVALUATE_FUNCTION"
 
 if [ "x$LLVM_PREFIX" == "x" ]; then
